@@ -57,8 +57,8 @@ class _EmergencyUiState extends State<EmergencyUi>
               );
 
           return Container(
-            width: 100,
-            height: 100,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -86,7 +86,7 @@ class _EmergencyUiState extends State<EmergencyUi>
                 Icon(
                   Icons.warning_amber_rounded,
                   color: Colors.white,
-                  size: 34,
+                  size: 30,
                 ),
                 SizedBox(height: 6),
                 Text(
@@ -95,8 +95,8 @@ class _EmergencyUiState extends State<EmergencyUi>
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    letterSpacing: 0.8,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],

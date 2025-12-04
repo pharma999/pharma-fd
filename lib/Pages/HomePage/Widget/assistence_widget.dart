@@ -19,7 +19,7 @@ class AssistenceWidgetUi extends StatelessWidget {
 
       child: SizedBox(
         width: double.infinity,
-        height: MediaQuery.of(context).size.height * 0.15,
+        height: MediaQuery.of(context).size.height * 0.12,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(

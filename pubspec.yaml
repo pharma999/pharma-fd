@@ -44,7 +44,9 @@ dependencies:
   sms_autofill: ^2.4.1
   flashy_tab_bar2: ^0.0.10
   flutter_rating_bar: ^4.0.1
-  font_awesome_flutter: ^10.12.0  
+  font_awesome_flutter: ^10.12.0
+  iconsax_flutter: ^1.0.1  
+  google_maps_flutter: ^2.14.0
 
 dev_dependencies:
   flutter_test:

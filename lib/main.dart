@@ -10,7 +10,7 @@ void main() {
     ScreenUtilInit(
       designSize: const Size(360, 690), // your design reference size
       minTextAdapt: true,
-      builder: (context, child) => const MyApp(),
+      builder: (context, child) => MyApp(),
     ),
   );
 }
@@ -24,7 +24,8 @@ class MyApp extends StatelessWidget {
       title: "Healt Care",
       theme: lightTheme,
       darkTheme: darkTheme,
-      themeMode: ThemeMode.system,
+      // themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       getPages: pagePath,
 
       // home: HomePage(),

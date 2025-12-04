@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:home_care/Pages/HomePage/Widget/appoimnet_widget.dart';
-import 'package:home_care/Pages/HomePage/Widget/assistence_widget.dart';
 import 'package:home_care/Pages/HomePage/Widget/emergency_widget.dart';
 import 'package:home_care/Pages/HomePage/Widget/location_widget.dart';
 import 'package:home_care/Pages/HomePage/Widget/profesnal_widget.dart';
@@ -32,6 +31,7 @@ class HomePageUi extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [Color(0xFF6BC4FF), Color(0xFFE3F2FD)],
+                  // colors: [Color(0xFF82939e), Color(0xFFE3F2FD)],
                 ),
               ),
               child: Column(
@@ -63,11 +63,12 @@ class HomePageUi extends StatelessWidget {
             ),
 
             // 🔹 Banner section
-            AssistenceWidgetUi(),
+            // AssistenceWidgetUi(),
             const SizedBox(height: 16),
             // Services
             HealthCareServicesUi(),
 
+            // HealthcareCategoriesBar(),
             const SizedBox(height: 20),
 
             // 🔹 Product suggestion section

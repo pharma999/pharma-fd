@@ -6,8 +6,8 @@ class AppoimentUi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 90,
-      height: 90,
+      width: 80,
+      height: 80,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
@@ -35,12 +35,12 @@ class AppoimentUi extends StatelessWidget {
           Icon(Icons.calendar_today_rounded, color: Colors.blue, size: 28),
           SizedBox(height: 6),
           Text(
-            "Appointment",
+            "Meeting",
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.blue,
               fontWeight: FontWeight.bold,
-              fontSize: 13,
+              fontSize: 14,
             ),
           ),
         ],

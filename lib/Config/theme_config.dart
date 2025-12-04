@@ -19,6 +19,7 @@ var darkTheme = ThemeData(
     primaryContainer: dContainerColor,
     onPrimaryContainer: dOnContainerColor,
   ),
+
   textTheme: const TextTheme(
     headlineLarge: TextStyle(
       fontSize: 32,

@@ -23,8 +23,8 @@ class QuickWidget extends StatelessWidget {
     return GestureDetector(
       onTap: () => controller.quick(),
       child: Container(
-        width: 90,
-        height: 90,
+        width: 80,
+        height: 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: backgroundColor,
@@ -40,7 +40,7 @@ class QuickWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: iconColor, size: 28),
+            Icon(icon, color: iconColor, size: 30),
             const SizedBox(height: 4),
             Text(
               label,

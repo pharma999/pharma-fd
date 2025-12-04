@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 
-class HealthCareServicesUi extends StatefulWidget {
+class HealthCareServicesUi extends StatelessWidget {
   const HealthCareServicesUi({super.key});
-
-  @override
-  State<HealthCareServicesUi> createState() => _HealthCareServicesUiState();
-}
-
-class _HealthCareServicesUiState extends State<HealthCareServicesUi> {
-  bool showAll = false;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +37,7 @@ class _HealthCareServicesUiState extends State<HealthCareServicesUi> {
         'gradient': [Color(0xFFE11D48), Color(0xFFBE123C)],
       },
       {
-        'title': 'Therapy Support',
+        'title': 'Therapy ',
         'icon': Icons.self_improvement,
         'gradient': [Color(0xFF2563EB), Color(0xFF1E3A8A)],
       },
@@ -70,120 +63,83 @@ class _HealthCareServicesUiState extends State<HealthCareServicesUi> {
       },
     ];
 
-    // ✅ Limit to 6 if not showing all
-    final visibleServices = showAll ? services : services.take(6).toList();
-
     return Container(
       color: const Color(0xFFE0E7FF),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Header Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Healthcare Services",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF312E81),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  setState(() => showAll = !showAll);
-                },
-                child: Row(
-                  children: [
-                    Text(
-                      showAll ? "Show Less" : "View All",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF4F46E5),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      showAll
-                          ? Icons.keyboard_arrow_up
-                          : Icons.arrow_forward_ios,
-                      color: const Color(0xFF4F46E5),
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          // 🔹 Header
+          const Text(
+            "Healthcare Services",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF312E81),
+            ),
           ),
+          const SizedBox(height: 16),
 
-          // 🔹 Grid with optional scrolling
-          SizedBox(
-            height: showAll
-                ? 300
-                : null, // ⬅ Limit height only in expanded mode
-            child: GridView.builder(
-              shrinkWrap: !showAll, // ✅ Only let it expand when collapsed
-              physics: showAll
-                  ? const AlwaysScrollableScrollPhysics()
-                  : const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: 0.9,
-              ),
-              itemCount: visibleServices.length,
-              itemBuilder: (context, index) {
-                final service = visibleServices[index];
+          // 🔹 Horizontal scroll list
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: services.map((service) {
                 return Container(
+                  width: 110,
+
+                  margin: const EdgeInsets.only(right: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 6,
                         offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: service['gradient'] as List<Color>,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16.0,
+                      horizontal: 8.0,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 55,
+                          height: 55,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: service['gradient'] as List<Color>,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Icon(
+                            service['icon'] as IconData,
+                            color: Colors.white,
+                            size: 32,
                           ),
                         ),
-                        child: Icon(
-                          service['icon'] as IconData,
-                          color: Colors.white,
-                          size: 32,
+                        const SizedBox(height: 10),
+                        Text(
+                          service['title'] as String,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF312E81),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        service['title'] as String,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF312E81),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
-              },
+              }).toList(),
             ),
           ),
         ],
@@ -191,3 +147,83 @@ class _HealthCareServicesUiState extends State<HealthCareServicesUi> {
     );
   }
 }
+
+// import 'package:flutter/material.dart';
+
+// class HealthcareCategoriesBar extends StatelessWidget {
+//   const HealthcareCategoriesBar({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final categories = [
+//       {'title': 'All', 'icon': Icons.apps},
+//       {'title': 'Nursing', 'icon': Icons.safety_check},
+//       {'title': 'Physiotherapy', 'icon': Icons.show_chart},
+//       {'title': 'Elder Care', 'icon': Icons.favorite},
+//       {'title': 'Mental Health', 'icon': Icons.psychology},
+//       {'title': 'Checkups', 'icon': Icons.calendar_today},
+//       {'title': 'Emergency', 'icon': Icons.warning},
+//       {'title': 'Therapy', 'icon': Icons.self_improvement},
+//       {'title': 'Baby Care', 'icon': Icons.child_care},
+//       {'title': 'Lab Tests', 'icon': Icons.science},
+//     ];
+
+//     return SizedBox(
+//       height: 90,
+//       child: ListView.builder(
+//         scrollDirection: Axis.horizontal,
+//         padding: const EdgeInsets.symmetric(horizontal: 12),
+//         itemCount: categories.length,
+//         itemBuilder: (context, index) {
+//           final category = categories[index];
+//           return Container(
+//             width: 80,
+//             margin: const EdgeInsets.only(right: 12),
+//             decoration: BoxDecoration(
+//               color: Colors.white,
+//               borderRadius: BorderRadius.circular(16),
+//               boxShadow: [
+//                 BoxShadow(
+//                   color: Colors.black.withOpacity(0.05),
+//                   blurRadius: 5,
+//                   offset: const Offset(0, 3),
+//                 ),
+//               ],
+//             ),
+//             child: InkWell(
+//               borderRadius: BorderRadius.circular(16),
+//               onTap: () {},
+//               child: Padding(
+//                 padding: const EdgeInsets.symmetric(vertical: 10),
+//                 child: Column(
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     CircleAvatar(
+//                       backgroundColor: const Color(0xFFEEF2FF),
+//                       radius: 22,
+//                       child: Icon(
+//                         category['icon'] as IconData,
+//                         color: const Color(0xFF4F46E5),
+//                         size: 24,
+//                       ),
+//                     ),
+//                     const SizedBox(height: 6),
+//                     Text(
+//                       category['title'] as String,
+//                       textAlign: TextAlign.center,
+//                       style: const TextStyle(
+//                         fontSize: 13,
+//                         fontWeight: FontWeight.w600,
+//                         color: Color(0xFF312E81),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }

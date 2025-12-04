@@ -10,7 +10,7 @@ class ServicesPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Center(child: Text("Services")),
+        title: Text("Services"),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.blue),
           onPressed: () {
@@ -18,6 +18,7 @@ class ServicesPage extends StatelessWidget {
           },
         ),
       ),
+
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -70,7 +71,7 @@ class ServicesPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         blurRadius: 5,
                         offset: const Offset(0, 3),
                       ),
@@ -197,34 +198,6 @@ class ServicesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTopButton({
-    required Color color,
-    required IconData icon,
-    required String label,
-  }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.4),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: Colors.white, size: 30),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
   Widget _buildServiceCard(IconData icon, String label, Color color) {
     return Container(
       decoration: BoxDecoration(
@@ -232,7 +205,7 @@ class ServicesPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -242,7 +215,7 @@ class ServicesPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircleAvatar(
-            backgroundColor: color.withOpacity(0.15),
+            backgroundColor: color.withValues(alpha: 0.15),
             radius: 25,
             child: Icon(icon, color: color, size: 28),
           ),

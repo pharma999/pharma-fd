@@ -3,7 +3,6 @@ import 'package:flashy_tab_bar2/flashy_tab_bar2.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:home_care/Config/images_config.dart';
 import 'package:home_care/Pages/HomePage/home_page.dart';
-import 'package:home_care/Pages/Services/services_page.dart';
 
 class BottomBarPage extends StatefulWidget {
   const BottomBarPage({super.key});
@@ -18,7 +17,7 @@ class _BottomBarPageState extends State<BottomBarPage> {
   final List<Widget> _pages = const [
     // Center(child: Text('Events Page')),
     HomePage(),
-    ServicesPage(),
+    // ServicesPage(),
     Center(child: Text('Highlights Page')),
     Center(child: Text('Settings Page')),
   ];
@@ -67,17 +66,17 @@ class _BottomBarPageState extends State<BottomBarPage> {
                 activeColor: Colors.blueAccent,
                 inactiveColor: Colors.grey,
               ),
-              FlashyTabBarItem(
-                icon: SvgPicture.asset(
-                  AssetsImage.servicesIcon,
-                  colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
-                  width: 28,
-                  height: 28,
-                ),
-                title: const Text('Services'),
-                activeColor: Colors.purpleAccent,
-                inactiveColor: Colors.grey,
-              ),
+              // FlashyTabBarItem(
+              //   icon: SvgPicture.asset(
+              //     AssetsImage.servicesIcon,
+              //     colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+              //     width: 28,
+              //     height: 28,
+              //   ),
+              //   title: const Text('Services'),
+              //   activeColor: Colors.purpleAccent,
+              //   inactiveColor: Colors.grey,
+              // ),
               FlashyTabBarItem(
                 icon: SvgPicture.asset(
                   AssetsImage.bookingsIcon,

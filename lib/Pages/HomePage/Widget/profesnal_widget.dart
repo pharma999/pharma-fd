@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:home_care/Controller/professnals_controller.dart';
 
 class AvailableProfessionalsUi extends StatefulWidget {
   const AvailableProfessionalsUi({super.key});
@@ -59,6 +60,8 @@ class _AvailableProfessionalsUiState extends State<AvailableProfessionalsUi> {
   @override
   Widget build(BuildContext context) {
     // 🔹 Limit to 4 unless "See All" clicked
+    final ProfessnalsController controller = ProfessnalsController();
+
     final visibleProfessionals = showAll
         ? professionals
         : professionals.take(4).toList();
@@ -122,7 +125,7 @@ class _AvailableProfessionalsUiState extends State<AvailableProfessionalsUi> {
 
           // 🔹 Scrollable Professional List
           SizedBox(
-            height: showAll ? 400 : 350, // set reasonable height
+            height: showAll ? 350 : 300, // set reasonable height
             child: ListView.builder(
               itemCount: visibleProfessionals.length,
               itemBuilder: (context, index) {
@@ -139,12 +142,15 @@ class _AvailableProfessionalsUiState extends State<AvailableProfessionalsUi> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Profile placeholder
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE3E8FF),
-                          borderRadius: BorderRadius.circular(12),
+                      GestureDetector(
+                        onTap: () => controller.profilePage(),
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE3E8FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -252,7 +258,7 @@ class _AvailableProfessionalsUiState extends State<AvailableProfessionalsUi> {
                                   ],
                                 ),
                                 TextButton(
-                                  onPressed: () {},
+                                  onPressed: () => controller.bookNow(),
                                   style: TextButton.styleFrom(
                                     backgroundColor: const Color(
                                       0xFF4F46E5,
