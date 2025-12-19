@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:home_care/Controller/profile_controller.dart';
 
 class LocationHomeUi extends StatelessWidget {
@@ -40,7 +41,9 @@ class LocationHomeUi extends StatelessWidget {
             IconButton(
               onPressed: () {
                 // Notification button action
-                print("Card has been clicked...");
+                // Get.offAllNamed("/profile");
+                // print("Card has been clicked...");
+                Get.offAllNamed("/cart");
               },
               icon: const Icon(
                 // Icons.notifications,
@@ -80,9 +83,10 @@ class LocationHomeUi extends StatelessWidget {
         // 🔹 Profile icon
         IconButton(
           onPressed: () {
-            // Profile button action
-            print("profile clicked...");
-            controller.profile();
+            // // Profile button action
+            // // print("profile clicked...");
+            // controller.profile();
+            Get.offAllNamed("/profile");
           },
           icon: const CircleAvatar(
             radius: 14,

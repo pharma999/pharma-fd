@@ -2,6 +2,7 @@ import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:get/get_navigation/src/routes/transitions_type.dart';
 import 'package:home_care/Pages/BookNow/bookNow_page.dart';
 import 'package:home_care/Pages/BottomNavigationBar/bottom_bar_page.dart';
+import 'package:home_care/Pages/Cart/cart_screen.dart';
 import 'package:home_care/Pages/HomePage/home_page.dart';
 import 'package:home_care/Pages/Profile/profile.dart';
 import 'package:home_care/Pages/Professional/professnal_page.dart';
@@ -76,6 +77,12 @@ var pagePath = [
   GetPage(
     name: "/profile",
     page: () => Profile(),
+    transition: Transition.rightToLeft,
+  ),
+
+  GetPage(
+    name: "/cart",
+    page: () => CartScreen(),
     transition: Transition.rightToLeft,
   ),
 ];

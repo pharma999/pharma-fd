@@ -11,4 +11,5 @@ class AssetsImage {
 
   // Images
   static const otpImage = "$imagePath/image.png";
+  static const profileImage = "$imagePath/adarsh.png";
 }
