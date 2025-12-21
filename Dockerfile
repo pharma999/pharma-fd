@@ -8,17 +8,17 @@ WORKDIR /app
 # Copy source code
 COPY . .
 
-# Enable Flutter web explicitly
+# Enable Flutter web
 RUN flutter config --enable-web
 
-# (Optional but very useful) Check Flutter environment
+# Show Flutter environment (for logs)
 RUN flutter doctor -v
 
-# Get dependencies
+# Install dependencies
 RUN flutter pub get
 
-# Build Flutter Web (HTML renderer = most compatible)
-RUN flutter build web --web-renderer html
+# Build Flutter Web (NO web-renderer flag)
+RUN flutter build web
 
 # =========================
 # Stage 2: Serve with Nginx
