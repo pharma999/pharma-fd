@@ -47,6 +47,7 @@ dependencies:
   font_awesome_flutter: ^10.12.0
   iconsax_flutter: ^1.0.1  
   google_maps_flutter: ^2.14.0
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:

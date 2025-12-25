@@ -4,6 +4,8 @@ import 'package:home_care/Pages/BookNow/bookNow_page.dart';
 import 'package:home_care/Pages/BottomNavigationBar/bottom_bar_page.dart';
 import 'package:home_care/Pages/Cart/cart_screen.dart';
 import 'package:home_care/Pages/HomePage/home_page.dart';
+import 'package:home_care/Pages/Profile/FamilyReport/family_report.dart';
+import 'package:home_care/Pages/Profile/PersonalDetail/personal_deatil.dart';
 import 'package:home_care/Pages/Profile/profile.dart';
 import 'package:home_care/Pages/Professional/professnal_page.dart';
 import 'package:home_care/Pages/Quick/quick_page.dart';
@@ -85,4 +87,14 @@ var pagePath = [
     page: () => CartScreen(),
     transition: Transition.rightToLeft,
   ),
+
+  GetPage(
+    name: "/personal-detail",
+    page: () => PersonalDetailsPage(),
+    transition: Transition.leftToRight,
+  ),
+
+  GetPage(name: "/faimly-report",
+  page:() => FamilyReportsPage(),
+  transition: Transition.leftToRight)
 ];

@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:home_care/Config/images_config.dart';
+import 'package:home_care/Controller/profile_controller.dart';
+import 'package:home_care/Pages/Profile/Widget/personal_details_widget.dart';
 import 'package:home_care/Pages/Profile/widget/grid_menu.dart';
 import 'package:home_care/Pages/Profile/widget/info_card.dart';
 import 'package:home_care/Pages/Profile/widget/section_title.dart';
 import 'package:home_care/Pages/Profile/widget/settings_tile.dart';
+import 'package:get/get.dart';
 
 class Profile extends StatelessWidget {
-  const Profile({super.key});
+  // const Profile({super.key});
+  // final ProfileController controller = Get.put(ProfileController());
+  // ✅ Inject controller
+  final ProfileController controller = Get.put(ProfileController());
+
+  // const Profile({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +57,7 @@ class Profile extends StatelessWidget {
             _healthTile(context),
             const SectionTitle(title: 'Dashboard'),
             const GridMenu(),
+            PersonalDetailsWidget(user: controller.user),
             const SectionTitle(title: 'Settings'),
             const SettingsTile(
               icon: Icons.notifications,

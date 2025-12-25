@@ -35,23 +35,7 @@ class _PhoneNumberPageState extends State<PhoneNumberPage>
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: CustomAppBar(title: "Health Care"),
-      // appBar: AppBar(
-      //   elevation: 0,
-      //   backgroundColor: theme.colorScheme.surface,
-      //   centerTitle: true,
-      //   title: Text(
-      //     "Health Care",
-      //     style: TextStyle(
-      //       color: theme.colorScheme.primary,
-      //       fontWeight: FontWeight.bold,
-      //       fontSize: 28,
-      //     ),
-      //   ),
-      //   leading: IconButton(
-      //     icon: Icon(Icons.arrow_back, color: theme.colorScheme.primary),
-      //     onPressed: () => Get.offAllNamed("/"),
-      //   ),
-      // ),
+
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
@@ -130,6 +114,7 @@ class _PhoneNumberPageState extends State<PhoneNumberPage>
                     const SizedBox(height: 30),
                     ElevatedButton(
                       onPressed: () => controller.submit(context),
+                      // onPressed: () => controller.submit(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,

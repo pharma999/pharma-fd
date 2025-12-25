@@ -4,6 +4,7 @@ import 'package:home_care/Config/images_config.dart';
 import 'package:home_care/Controller/otp_controller.dart';
 import 'package:home_care/Pages/OtpPage/Widget/left_circle.dart';
 import 'package:home_care/Pages/OtpPage/Widget/right_circle_widget.dart';
+import 'package:get/get.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   const OtpVerificationPage({super.key});
@@ -18,6 +19,26 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+
+  final OtpController _controller = OtpController();
+  late String phoneNumber;
+  late String verificationId;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final args = Get.arguments as Map<String, dynamic>;
+
+    phoneNumber = args["phone_number"].toString();
+    verificationId = args["verificationId"].toString();
+
+    print(phoneNumber);
+    print(verificationId);
+
+    debugPrint("PHONE NUMBER: $phoneNumber");
+    debugPrint("VERIFICATION ID: $verificationId");
+  }
 
   @override
   void dispose() {
@@ -215,7 +236,12 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                onPressed: () => submitOtp(_controllers),
+                                // onPressed: () => submitOtp(_controller),
+                                onPressed: () => _controller.submitOtp(
+                                  _controllers,
+                                  phoneNumber: phoneNumber,
+                                  verificationId: verificationId,
+                                ),
                                 child: const Text(
                                   "Submit",
                                   style: TextStyle(
