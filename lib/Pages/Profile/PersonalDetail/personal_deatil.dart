@@ -439,7 +439,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:home_care/Pages/Profile/PersonalDetail/Widget/address_chip.dart';
 import 'package:home_care/Pages/Profile/PersonalDetail/Widget/info_card.dart';
 import 'package:home_care/Pages/Profile/PersonalDetail/Widget/section_title.dart';

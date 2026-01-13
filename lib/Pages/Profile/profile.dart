@@ -15,6 +15,8 @@ class Profile extends StatelessWidget {
   // ✅ Inject controller
   final ProfileController controller = Get.put(ProfileController());
 
+  Profile({super.key});
+
   // const Profile({super.key});
 
   @override
