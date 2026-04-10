@@ -588,6 +588,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Controller/service_cart_controller.dart';
 import 'package:home_care/Pages/Cart/widget/cart_app_bar.dart';
 import 'package:home_care/Pages/Cart/widget/cart_item.dart';
 import 'package:home_care/Pages/Cart/widget/checkout_button.dart';
@@ -605,16 +606,9 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  int qtyPhysio = 1;
-  int qtyBaby = 1;
-  int qtyRehab = 1;
-
   @override
   Widget build(BuildContext context) {
-    final subtotal = 45 * qtyPhysio + 28.5 * qtyBaby + 60 * qtyRehab;
-    final serviceFee = 5.0;
-    final tax = subtotal * 0.05;
-    final total = subtotal + serviceFee + tax;
+    final cartController = Get.find<ServiceCartController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -634,32 +628,59 @@ class _CartScreenState extends State<CartScreen> {
                   const DeliveryCard(),
                   const SizedBox(height: 20),
 
-                  CartItem(
-                    title: "Physiotherapy Session",
-                    subtitle: "Dr. Anjali Gupta • 1 Hr",
-                    price: "\$45.00",
-                    icon: Icons.spa,
-                    bgColor: const Color(0xFFE8EAF6),
-                    quantity: qtyPhysio,
-                    onQtyChanged: (v) => setState(() => qtyPhysio = v),
-                  ),
-                  CartItem(
-                    title: "Premium Baby Care Kit",
-                    subtitle: "Includes 5 essentials",
-                    price: "\$28.50",
-                    icon: Icons.child_care,
-                    bgColor: const Color(0xFFFFF3E0),
-                    quantity: qtyBaby,
-                    onQtyChanged: (v) => setState(() => qtyBaby = v),
-                  ),
-                  CartItem(
-                    title: "Rehabilitation Consult",
-                    subtitle: "Video Consultation",
-                    price: "\$60.00",
-                    icon: Icons.medical_services,
-                    bgColor: const Color(0xFFE8F5E9),
-                    quantity: qtyRehab,
-                    onQtyChanged: (v) => setState(() => qtyRehab = v),
+                  // Display added services dynamically
+                  Obx(
+                    () {
+                      if (cartController.cartItems.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.shopping_cart_outlined,
+                                  size: 64,
+                                  color: Colors.grey.shade400,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Your cart is empty',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        children: cartController.cartItems
+                            .map((service) {
+                              return CartItem(
+                                title: service.title,
+                                subtitle:
+                                    'Professional Service • 1 Hr',
+                                price:
+                                    '₹${(service.price * service.quantity).toStringAsFixed(0)}',
+                                icon: service.icon,
+                                bgColor: service.color
+                                        .withValues(alpha: 0.1),
+                                quantity: service.quantity,
+                                onQtyChanged: (newQty) {
+                                  cartController.updateQuantity(service.serviceId, newQty);
+                                },
+                                onRemove: () {
+                                  cartController.removeService(service.serviceId);
+                                },
+                              );
+                            })
+                            .toList(),
+                      );
+                    },
                   ),
 
                   const Padding(
@@ -680,13 +701,13 @@ class _CartScreenState extends State<CartScreen> {
                       children: const [
                         SuggestionCard(
                           title: "Pain Relief Gel",
-                          price: "+\$12.00",
+                          price: "₹12.00",
                           icon: Icons.medication,
                           color: Colors.blueAccent,
                         ),
                         SuggestionCard(
                           title: "BP Checkup",
-                          price: "+\$15.00",
+                          price: "₹15.00",
                           icon: Icons.monitor_heart,
                           color: Colors.purple,
                         ),
@@ -704,17 +725,53 @@ class _CartScreenState extends State<CartScreen> {
                   const PromoCode(),
                   const SizedBox(height: 25),
 
-                  SummaryRow(label: "Subtotal", value: subtotal),
-                  SummaryRow(label: "Service Fee", value: serviceFee),
-                  SummaryRow(label: "Tax (5%)", value: tax),
-                  const Divider(height: 30),
-                  SummaryRow(label: "Total", value: total, isBold: true),
+                  // Dynamic summary
+                  Obx(
+                    () {
+                      final subtotal = cartController.totalPrice.value;
+                      final serviceFee = 50.0;
+                      final tax = subtotal * 0.05;
+                      final total = subtotal + serviceFee + tax;
+
+                      return Column(
+                        children: [
+                          SummaryRow(
+                            label: "Subtotal (${cartController.cartItems.length} items)",
+                            value: subtotal,
+                          ),
+                          SummaryRow(
+                            label: "Service Fee",
+                            value: serviceFee,
+                          ),
+                          SummaryRow(
+                            label: "Tax (5%)",
+                            value: tax,
+                          ),
+                          const Divider(height: 30),
+                          SummaryRow(
+                            label: "Total",
+                            value: total,
+                            isBold: true,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
 
                   const SizedBox(height: 120),
                 ],
               ),
             ),
-            CheckoutButton(total: total),
+            Obx(
+              () {
+                final subtotal = cartController.totalPrice.value;
+                final serviceFee = 50.0;
+                final tax = subtotal * 0.05;
+                final total = subtotal + serviceFee + tax;
+
+                return CheckoutButton(total: total);
+              },
+            ),
           ],
         ),
       ),

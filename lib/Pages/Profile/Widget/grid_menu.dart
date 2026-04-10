@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:home_care/Pages/Profile/Widget/show_appoiments.dart';
 import 'package:home_care/Pages/Profile/widget/dashboard_card.dart';
+import 'package:home_care/Pages/Profile/appointments_page.dart';
+import 'package:home_care/Pages/Profile/records_page.dart';
+import 'package:home_care/Pages/Profile/profile_details_page.dart';
+import 'package:home_care/Pages/Profile/payments_page.dart';
 
 class GridMenu extends StatelessWidget {
   const GridMenu({super.key});
@@ -18,11 +23,18 @@ class GridMenu extends StatelessWidget {
           DashboardCard(
             'Appointments',
             Icons.calendar_today,
-            onTap: () => showAppointments(context),
+            onTap: () => Get.to(() => const AppointmentsPage()),
           ),
-          DashboardCard('Records', Icons.folder),
-          DashboardCard('Profile', Icons.account_circle_outlined),
-          DashboardCard('Payments', Icons.credit_card),
+          DashboardCard(
+            'Records',
+            Icons.folder,
+            onTap: () => Get.to(() => const RecordsPage()),
+          ),
+          DashboardCard(
+            'Payments',
+            Icons.credit_card,
+            onTap: () => Get.to(() => const PaymentsPage()),
+          ),
         ],
       ),
     );

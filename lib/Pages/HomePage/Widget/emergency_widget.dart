@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:home_care/Pages/SOS/sos_page.dart';
 
 class EmergencyUi extends StatefulWidget {
   const EmergencyUi({super.key});
@@ -56,50 +58,53 @@ class _EmergencyUiState extends State<EmergencyUi>
                 ),
               );
 
-          return Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: alignmentTween.value,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.red.shade900,
-                  Colors.red.shade700,
-                  Colors.red.shade500,
-                  Colors.red.shade400,
+          return GestureDetector(
+            onTap: () => Get.to(() => const SOSPage()),
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: alignmentTween.value,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.red.shade900,
+                    Colors.red.shade700,
+                    Colors.red.shade500,
+                    Colors.red.shade400,
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withValues(alpha: .6),
+                    blurRadius: 20,
+                    spreadRadius: 3,
+                    offset: const Offset(0, 5),
+                  ),
                 ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withValues(alpha: .6),
-                  blurRadius: 20,
-                  spreadRadius: 3,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.white,
-                  size: 30,
-                ),
-                SizedBox(height: 6),
-                Text(
-                  "Emergency",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(
+                    Icons.warning_amber_rounded,
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    letterSpacing: 0.5,
+                    size: 30,
                   ),
-                ),
-              ],
+                  SizedBox(height: 6),
+                  Text(
+                    "Emergency",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

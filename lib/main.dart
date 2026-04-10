@@ -4,13 +4,19 @@ import 'package:home_care/Config/page_path_config.dart';
 import 'package:home_care/Config/theme_config.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:home_care/Pages/WelcomePage/welcome_page.dart';
+import 'package:home_care/Controller/profile_controller.dart';
+import 'package:home_care/Controller/service_cart_controller.dart';
 
 void main() {
+  // Initialize GetX Controllers
+  Get.put(ProfileController());
+  Get.put(ServiceCartController());
+
   runApp(
     ScreenUtilInit(
       designSize: const Size(360, 690), // your design reference size
       minTextAdapt: true,
-      builder: (context, child) => MyApp(),
+      builder: (context, child) => const MyApp(),
     ),
   );
 }

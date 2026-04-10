@@ -12,9 +12,9 @@ class QuickWidget extends StatelessWidget {
     super.key,
     this.icon = Icons.quickreply_sharp, // ⚡ default icon
     this.label = "Quick",
-    this.backgroundColor = Colors.yellow,
-    this.iconColor = Colors.blue,
-    this.textColor = Colors.blue,
+    this.backgroundColor = const Color(0xFF00BCD4),
+    this.iconColor = Colors.white,
+    this.textColor = Colors.white,
   });
 
   @override

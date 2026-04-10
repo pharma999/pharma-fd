@@ -3,6 +3,8 @@ import 'package:flashy_tab_bar2/flashy_tab_bar2.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:home_care/Config/images_config.dart';
 import 'package:home_care/Pages/HomePage/home_page.dart';
+import 'package:home_care/Pages/Booking/booking_flow_page.dart';
+import 'package:home_care/Pages/Profile/profile.dart';
 
 class BottomBarPage extends StatefulWidget {
   const BottomBarPage({super.key});
@@ -14,12 +16,10 @@ class BottomBarPage extends StatefulWidget {
 class _BottomBarPageState extends State<BottomBarPage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = const [
-    // Center(child: Text('Events Page')),
-    HomePage(),
-    // ServicesPage(),
-    Center(child: Text('Highlights Page')),
-    Center(child: Text('Settings Page')),
+  final List<Widget> _pages = [
+    const HomePage(),
+    const BookingFlowPage(),
+    Profile(),
   ];
 
   @override

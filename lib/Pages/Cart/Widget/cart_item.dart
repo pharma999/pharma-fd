@@ -8,6 +8,7 @@ class CartItem extends StatelessWidget {
   final Color bgColor;
   final int quantity;
   final Function(int) onQtyChanged;
+  final VoidCallback? onRemove;
 
   const CartItem({
     super.key,
@@ -18,6 +19,7 @@ class CartItem extends StatelessWidget {
     required this.bgColor,
     required this.quantity,
     required this.onQtyChanged,
+    this.onRemove,
   });
 
   @override
@@ -45,38 +47,48 @@ class CartItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold)),
-                Text(subtitle,
-                    style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (onRemove != null)
+                      GestureDetector(
+                        onTap: onRemove,
+                        child: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                      ),
+                  ],
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(price,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed: quantity > 1
-                              ? () => onQtyChanged(quantity - 1)
-                              : null,
-                        ),
-                        Text("$quantity"),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () => onQtyChanged(quantity + 1),
-                        ),
-                      ],
-                    )
+                    Text(
+                      price,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox.shrink(),
                   ],
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

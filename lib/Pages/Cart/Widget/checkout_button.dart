@@ -17,19 +17,24 @@ class CheckoutButton extends StatelessWidget {
         ),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
+            backgroundColor: const Color(0xFF00BCD4),
             minimumSize: const Size(double.infinity, 60),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
           ),
           onPressed: () {},
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Checkout",
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
-              Text("\$${total.toStringAsFixed(2)}",
-                  style: const TextStyle(color: Colors.white)),
+              const Text(
+                "Checkout",
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              Text(
+                "₹${total.toStringAsFixed(0)}",
+                style: const TextStyle(color: Colors.white),
+              ),
             ],
           ),
         ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Pages/Booking/booking_flow_page.dart';
+import 'package:home_care/Controller/service_cart_controller.dart';
 
 class QuickServicesPage extends StatelessWidget {
   final List<ServiceItem> services = [
@@ -18,14 +20,14 @@ class QuickServicesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
 
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Get.offAllNamed("/bottomAppBar"),
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Colors.grey),
         ),
         title: const Text(
           "Quick Services",
@@ -104,8 +106,35 @@ class QuickServicesPage extends StatelessWidget {
                   final service = services[index];
                   return GestureDetector(
                     onTap: () {
-                      print("Tapped on ${service.title}");
-                      // TODO: Navigate to detail page or call controller.quick()
+                      final cartController = Get.find<ServiceCartController>();
+                      final isNew = cartController.addService(
+                        serviceId: 'service_${index}',
+                        title: service.title,
+                        icon: service.icon,
+                        color: service.color,
+                        price: 500.0,
+                      );
+
+                      // Show appropriate message
+                      Get.snackbar(
+                        isNew ? 'Added to Cart' : 'Updated Cart',
+                        isNew
+                            ? '${service.title} added to your cart'
+                            : '${service.title} quantity increased',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: service.color,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 2),
+                      );
+
+                      // Navigate to booking flow
+                      Get.to(
+                        () => BookingFlowPage(
+                          serviceName: service.title,
+                          serviceIcon: service.icon,
+                          serviceColor: service.color,
+                        ),
+                      );
                     },
                     child: Column(
                       children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:home_care/Controller/profile_controller.dart';
+import 'package:home_care/Controller/service_cart_controller.dart';
 
 class LocationHomeUi extends StatelessWidget {
   const LocationHomeUi({super.key});
@@ -8,6 +9,8 @@ class LocationHomeUi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProfileController controller = ProfileController();
+    final ServiceCartController cartController = Get.find<ServiceCartController>();
+
     // Example full location text
     final String fullLocation =
         "Lucknow Jankipuram Sector-H 201013 near Engineering College main gate road number five";
@@ -17,9 +20,6 @@ class LocationHomeUi extends StatelessWidget {
     final String shortLocation = words.length > 20
         ? '${words.take(10).join(' ')}...'
         : fullLocation;
-
-    // Example dynamic notification count
-    final int notificationCount = 3;
 
     return Row(
       children: [
@@ -35,57 +35,56 @@ class LocationHomeUi extends StatelessWidget {
         const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.black54),
         const SizedBox(width: 10),
 
-        // 🔹 Notification icon with badge
+        // 🔹 Notification icon with dynamic badge
         Stack(
           children: [
             IconButton(
               onPressed: () {
-                // Notification button action
-                // Get.offAllNamed("/profile");
-                // print("Card has been clicked...");
                 Get.offAllNamed("/cart");
               },
               icon: const Icon(
-                // Icons.notifications,
                 Icons.shopping_cart,
                 color: Colors.black54,
                 size: 25,
               ),
             ),
-            if (notificationCount > 0)
-              Positioned(
-                right: 1,
-                top: 1,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: Text(
-                    '$notificationCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+            Obx(
+              () {
+                if (cartController.totalItems > 0) {
+                  return Positioned(
+                    right: 1,
+                    top: 1,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '${cartController.totalItems}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ],
         ),
 
         // 🔹 Profile icon
         IconButton(
           onPressed: () {
-            // // Profile button action
-            // // print("profile clicked...");
-            // controller.profile();
             Get.offAllNamed("/profile");
           },
           icon: const CircleAvatar(

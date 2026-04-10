@@ -20,7 +20,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
 
-  final OtpController _controller = OtpController();
+  late OtpController _controller;
   late String phoneNumber;
   late String verificationId;
 
@@ -28,10 +28,14 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   void initState() {
     super.initState();
 
-    final args = Get.arguments as Map<String, dynamic>;
+    final args = Get.arguments as Map<String, dynamic>? ?? {'phoneNumber': ''};
 
-    phoneNumber = args["phone_number"].toString();
-    verificationId = args["verificationId"].toString();
+    phoneNumber = args["phoneNumber"].toString();
+    verificationId = args["verificationId"] ?? '';
+
+    // Initialize OTP controller with GetX
+    _controller = Get.put(OtpController());
+    _controller.setPhoneNumber(phoneNumber);
 
     print(phoneNumber);
     print(verificationId);
@@ -220,45 +224,124 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                               ),
                             ),
 
-                            const Spacer(),
+                            const Spacer(), const SizedBox(height: 20),
+
+                            // Error message display
+                            Obx(
+                              () => _controller.errorMessage.value.isNotEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.all(12),
+                                      margin: const EdgeInsets.only(bottom: 15),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.red,
+                                          width: 1.5,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.red.shade50,
+                                      ),
+                                      child: Text(
+                                        _controller.errorMessage.value,
+                                        style: TextStyle(
+                                          color: Colors.red.shade700,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
                             const SizedBox(height: 40),
 
                             // 🟦 Submit Button (not floating)
                             SizedBox(
                               width: double.infinity,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueGrey.shade900,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
+                              child: Obx(
+                                () => ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blueGrey.shade900,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                // onPressed: () => submitOtp(_controller),
-                                onPressed: () => _controller.submitOtp(
-                                  _controllers,
-                                  phoneNumber: phoneNumber,
-                                  verificationId: verificationId,
-                                ),
-                                child: const Text(
-                                  "Submit",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                  ),
+                                  onPressed: _controller.isLoading.value
+                                      ? null
+                                      : () => _controller
+                                            .submitOtpWithControllers(
+                                              _controllers,
+                                            ),
+                                  child: _controller.isLoading.value
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation(
+                                              Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      : const Text(
+                                          "Submit",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 10),
-                            GestureDetector(
-                              onTap: () => resedOtp(),
-                              child: const Text(
-                                "Didn’t receive the code? Resend",
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 15,
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.amber.shade600,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.amber.shade50,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Demo Mode 🧪",
+                                    style: TextStyle(
+                                      color: Colors.amber.shade800,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Use OTP: 5555",
+                                    style: TextStyle(
+                                      color: Colors.amber.shade700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            Obx(
+                              () => GestureDetector(
+                                onTap: _controller.canResend.value
+                                    ? () => _controller.resendOtp()
+                                    : null,
+                                child: Text(
+                                  _controller.canResend.value
+                                      ? "Didn't receive the code? Resend"
+                                      : "Resend in ${_controller.secondsRemaining.value}s",
+                                  style: TextStyle(
+                                    color: _controller.canResend.value
+                                        ? Colors.blue
+                                        : Colors.black54,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ),
                             ),

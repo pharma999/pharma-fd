@@ -26,11 +26,11 @@ class SummaryRow extends StatelessWidget {
             ),
           ),
           Text(
-            "\$${value.toStringAsFixed(2)}",
+            "₹${value.toStringAsFixed(0)}",
             style: TextStyle(
               fontSize: isBold ? 22 : 15,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: isBold ? Colors.blue : Colors.black,
+              color: isBold ? const Color(0xFF00BCD4) : Colors.black,
             ),
           ),
         ],

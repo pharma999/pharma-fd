@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:home_care/Controller/service_cart_controller.dart';
+import 'package:home_care/Controller/service_professionals_controller.dart';
 
 class ServicesPage extends StatelessWidget {
   const ServicesPage({super.key});
@@ -136,39 +139,46 @@ class ServicesPage extends StatelessWidget {
                 GridView.count(
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
-                  crossAxisCount: 3,
+                  crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
+                  childAspectRatio: 0.9,
                   children: [
                     _buildServiceCard(
                       Icons.shield_rounded,
                       "Nursing Care",
                       Colors.blue,
+                      'nursing_care',
                     ),
                     _buildServiceCard(
                       Icons.monitor_heart,
                       "Physiotherapy",
                       Colors.purple,
+                      'physiotherapy',
                     ),
                     _buildServiceCard(
                       Icons.favorite,
                       "Elder Care",
                       Colors.pink,
+                      'elder_care',
                     ),
                     _buildServiceCard(
                       Icons.psychology,
                       "Mental Health",
                       Colors.green,
+                      'mental_health',
                     ),
                     _buildServiceCard(
                       Icons.medical_services,
                       "Lab Test",
                       Colors.orange,
+                      'lab_tests',
                     ),
                     _buildServiceCard(
                       Icons.warning,
                       "Emergency Help",
                       Colors.red,
+                      'emergency',
                     ),
                   ],
                 ),
@@ -198,7 +208,15 @@ class ServicesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildServiceCard(IconData icon, String label, Color color) {
+  Widget _buildServiceCard(
+    IconData icon,
+    String label,
+    Color color,
+    String serviceId,
+  ) {
+    final cartController = Get.find<ServiceCartController>();
+    final profController = Get.find<ServiceProfessionalsController>();
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -212,18 +230,114 @@ class ServicesPage extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          CircleAvatar(
-            backgroundColor: color.withValues(alpha: 0.15),
-            radius: 25,
-            child: Icon(icon, color: color, size: 28),
+          // Icon and Label
+          Flexible(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  backgroundColor: color.withValues(alpha: 0.15),
+                  radius: 22,
+                  child: Icon(icon, color: color, size: 26),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF312E81),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-            textAlign: TextAlign.center,
+
+          // Action Buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 24,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      // Add to Cart logic
+                      cartController.addService(
+                        serviceId: serviceId,
+                        title: label,
+                        icon: icon,
+                        color: color,
+                        price: 500.0,
+                      );
+                      Get.snackbar(
+                        'Added to Cart',
+                        '$label added to cart',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.green.shade600,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 2),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey.shade700,
+                      side: BorderSide(color: Colors.grey.shade300, width: 0.8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    child: const Text(
+                      'Add to Cart',
+                      style: TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                SizedBox(
+                  width: double.infinity,
+                  height: 24,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Book Now logic
+                      profController.selectService(serviceId, label);
+                      Get.snackbar(
+                        'Service Selected',
+                        'Showing available professionals for $label',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.blue.shade600,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 2),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 0),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Book Now',
+                      style: TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

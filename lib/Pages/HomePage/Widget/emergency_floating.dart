@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Pages/Chatbot/chatbot_page.dart';
 
-class EmergencyFloatingButton extends StatefulWidget {
-  const EmergencyFloatingButton({super.key});
+class ChatbotFloatingButton extends StatefulWidget {
+  const ChatbotFloatingButton({super.key});
 
   @override
-  State<EmergencyFloatingButton> createState() =>
-      _EmergencyFloatingButtonState();
+  State<ChatbotFloatingButton> createState() => _ChatbotFloatingButtonState();
 }
 
-class _EmergencyFloatingButtonState extends State<EmergencyFloatingButton>
+class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton>
     with TickerProviderStateMixin {
   late AnimationController _gradientController;
   late AnimationController _pulseController;
@@ -60,7 +60,7 @@ class _EmergencyFloatingButtonState extends State<EmergencyFloatingButton>
 
           return GestureDetector(
             onTap: () {
-              Get.toNamed("/cart");
+              Get.to(() => const ChatbotPage());
             },
             child: Container(
               width: 76,
@@ -71,14 +71,14 @@ class _EmergencyFloatingButtonState extends State<EmergencyFloatingButton>
                   begin: alignmentTween.value,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.redAccent.shade700,
-                    Colors.redAccent.shade400,
-                    Colors.orangeAccent.shade200,
+                    Color(0xFF00BCD4),
+                    Color(0xFF0097A7),
+                    Color(0xFF006064),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.redAccent.withValues(alpha: 0.6),
+                    color: Color(0xFF00BCD4).withValues(alpha: 0.6),
                     blurRadius: 18,
                     spreadRadius: 3,
                     offset: const Offset(0, 6),
@@ -88,10 +88,14 @@ class _EmergencyFloatingButtonState extends State<EmergencyFloatingButton>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const [
-                  Icon(Icons.emergency_outlined, color: Colors.white, size: 30),
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    color: Colors.white,
+                    size: 30,
+                  ),
                   SizedBox(height: 4),
                   Text(
-                    "Emergency",
+                    "Chat",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11,

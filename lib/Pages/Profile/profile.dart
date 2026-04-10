@@ -7,17 +7,13 @@ import 'package:home_care/Pages/Profile/widget/grid_menu.dart';
 import 'package:home_care/Pages/Profile/widget/info_card.dart';
 import 'package:home_care/Pages/Profile/widget/section_title.dart';
 import 'package:home_care/Pages/Profile/widget/settings_tile.dart';
-import 'package:get/get.dart';
 
 class Profile extends StatelessWidget {
   // const Profile({super.key});
-  // final ProfileController controller = Get.put(ProfileController());
-  // ✅ Inject controller
-  final ProfileController controller = Get.put(ProfileController());
+  // ✅ Initialize controller only once
+  final ProfileController controller = Get.find<ProfileController>();
 
   Profile({super.key});
-
-  // const Profile({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +55,16 @@ class Profile extends StatelessWidget {
             _healthTile(context),
             const SectionTitle(title: 'Dashboard'),
             const GridMenu(),
-            PersonalDetailsWidget(user: controller.user),
+            Obx(
+              () => controller.user.value != null
+                  ? PersonalDetailsWidget(user: controller.user.value!)
+                  : const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+            ),
             const SectionTitle(title: 'Settings'),
             const SettingsTile(
               icon: Icons.notifications,

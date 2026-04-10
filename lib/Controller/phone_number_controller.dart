@@ -1,31 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:home_care/Api/services/auth_api.dart';
+import 'package:home_care/Api/Services/auth_repository.dart';
 import 'package:home_care/Helper/phone_number_helper.dart';
+import 'package:home_care/Helper/logger_service.dart';
 
-class PhoneNumberController with ChangeNotifier {
-  final AuthApi _authApi = AuthApi();
+/// Phone Number Controller - Handles phone input validation and submission
+class PhoneNumberController extends GetxController
+    with GetTickerProviderStateMixin {
+  final AuthRepository _authRepository = AuthRepository();
+
+  // Form and input controls
   final formKey = GlobalKey<FormState>();
   final TextEditingController phoneController = TextEditingController();
   final FocusNode focusNode = FocusNode();
 
-  String? completePhoneNumber;
-  String initialCountryCode = "IN";
+  // Observable state
+  RxString completePhoneNumber = ''.obs;
+  RxString countryCode = 'IN'.obs;
+  RxBool isLoading = false.obs;
+  RxBool isPhoneValid = false.obs;
+  RxString errorMessage = ''.obs;
 
-  bool isLoading = false;
-
+  // Animation controllers
   late AnimationController animationController;
   late Animation<double> fadeAnimation;
   late Animation<Offset> slideAnimation;
 
-  /// 🔹 DUMMY VALUES (TEST MODE)
-  static const String dummyPhoneNumber = "6386098744";
-  static const String dummyVerificationId = "3782559";
+  @override
+  void onInit() {
+    super.onInit();
+    LoggerService.info('PhoneNumberController initialized');
+    _setupAnimation();
+    _detectCountryFromLocation();
+  }
 
-  /// Initialize all controllers & animations
-  void initController(TickerProvider vsync) {
+  /// Setup fade and slide animations
+  void _setupAnimation() {
     animationController = AnimationController(
-      vsync: vsync,
+      vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
@@ -43,80 +55,152 @@ class PhoneNumberController with ChangeNotifier {
         );
 
     animationController.forward();
-
-    // 🛠 Run location detection AFTER first frame to avoid blocking UI
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _detectCountryFromLocation();
-    });
+    LoggerService.debug('Animation setup completed');
   }
 
-  /// Detect user's country using Geolocator
+  /// Detect user's country using geolocation
   Future<void> _detectCountryFromLocation() async {
     try {
-      final countryCode = await PhoneNumberHelper.detectCountryCode();
-      if (countryCode != null) {
-        initialCountryCode = countryCode;
-        notifyListeners();
+      LoggerService.info('Detecting country from location');
+      final detectedCode = await PhoneNumberHelper.detectCountryCode();
+
+      if (detectedCode != null) {
+        countryCode.value = detectedCode;
+        LoggerService.success('Country detected: $detectedCode');
       }
     } catch (e) {
-      debugPrint("Error detecting country: $e");
+      LoggerService.warning('Error detecting country: $e');
+      // Default to IN if detection fails
+      countryCode.value = 'IN';
     }
   }
 
-  // Validate and save phone number
-  // bool submit(BuildContext context) {
-  //   FocusScope.of(context).unfocus();
+  /// Validate phone number format
+  bool _validatePhoneNumber(String phone) {
+    if (phone.isEmpty) {
+      errorMessage.value = 'Phone number cannot be empty';
+      return false;
+    }
 
-  //   if (formKey.currentState!.validate()) {
-  //     formKey.currentState!.save();
-  //     print("Enter button submitted");
-  //     Get.offAllNamed("/otpPage");
-  //     return true;
-  //   }
-  //   return false;
-  // }
+    // Remove non-numeric characters
+    final digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
 
-  Future<void> submit(BuildContext context) async {
+    // Check if phone number is valid (at least 10 digits)
+    if (digitsOnly.length < 10) {
+      errorMessage.value =
+          'Please enter a valid phone number (at least 10 digits)';
+      LoggerService.warning('Invalid phone number length: $digitsOnly');
+      return false;
+    }
+
+    if (digitsOnly.length > 15) {
+      errorMessage.value = 'Phone number is too long';
+      return false;
+    }
+
+    return true;
+  }
+
+  /// Update phone number and validate
+  void updatePhoneNumber(String phone) {
+    completePhoneNumber.value = phone.trim();
+
+    if (_validatePhoneNumber(phone)) {
+      isPhoneValid.value = true;
+      errorMessage.value = '';
+      LoggerService.debug('Phone number validated: $phone');
+    } else {
+      isPhoneValid.value = false;
+    }
+  }
+
+  /// Submit phone number and request OTP
+  Future<void> submitPhoneNumber(BuildContext context) async {
     FocusScope.of(context).unfocus();
 
-    isLoading = true;
-    notifyListeners();
+    // Validate phone number
+    if (!formKey.currentState!.validate()) {
+      LoggerService.warning('Form validation failed');
+      return;
+    }
+
+    final phone = phoneController.text.trim();
+    if (!_validatePhoneNumber(phone)) {
+      LoggerService.warning('Phone number validation failed: $phone');
+      return;
+    }
 
     try {
-      // final response = await _authApi.login({
-      //   "phone_number": phoneController.text.trim(),
-      // });
+      isLoading.value = true;
+      errorMessage.value = '';
 
-      // debugPrint("LOGIN API RESPONSE:");
-      // debugPrint(response.toString());
+      LoggerService.info('Submitting phone number: $phone');
 
-      // if (response["sucess"] == true) {
-      //   Get.toNamed("/otpPage", arguments: response["data"]);
+      // 🧪 DEMO MODE: Bypass API for testing phone numbers
+      const String demoPhone = '6386098744';
+      if (phone == demoPhone) {
+        LoggerService.success('✅ DEMO MODE: Using bypass phone number');
+        completePhoneNumber.value = phone;
+        await Future.delayed(const Duration(milliseconds: 800));
+        Get.toNamed('/otpPage', arguments: {'phoneNumber': phone});
+        return;
+      }
 
-      // } else {
-      //   Get.snackbar("Error", "OTP sending failed");
-      // }
+      final result = await _authRepository.login(phoneNumber: phone);
 
-      Get.toNamed(
-        "/otpPage",
-        arguments: {
-          "phoneNumber": dummyPhoneNumber,
-          "verificationId": dummyVerificationId,
+      result.when(
+        onSuccess: (response) {
+          LoggerService.success('OTP sent successfully');
+          completePhoneNumber.value = phone;
+
+          // Navigate to OTP page with phone number
+          Get.toNamed('/otpPage', arguments: {'phoneNumber': phone});
+        },
+        onError: (error) {
+          errorMessage.value = error;
+          LoggerService.error('Failed to send OTP', error);
+          Get.snackbar('Error', error, snackPosition: SnackPosition.BOTTOM);
         },
       );
-    } catch (e) {
-      debugPrint("API ERROR: $e");
-      Get.snackbar("Error", e.toString());
     } finally {
-      isLoading = false;
-      notifyListeners();
+      isLoading.value = false;
     }
   }
 
-  /// Dispose controllers
-  void disposeController() {
+  /// Form validator function
+  String? phoneValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Phone number is required';
+    }
+
+    final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
+
+    if (digitsOnly.length < 10) {
+      return 'Phone number must be at least 10 digits';
+    }
+
+    if (digitsOnly.length > 15) {
+      return 'Phone number is too long';
+    }
+
+    return null;
+  }
+
+  /// Clear form
+  void clearForm() {
+    phoneController.clear();
+    completePhoneNumber.value = '';
+    isPhoneValid.value = false;
+    errorMessage.value = '';
+    LoggerService.info('Form cleared');
+  }
+
+  @override
+  void onClose() {
     focusNode.dispose();
     phoneController.dispose();
     animationController.dispose();
+    super.onClose();
+    LoggerService.info('PhoneNumberController disposed');
   }
 }
