@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:home_care/Controller/notification_controller.dart';
 import 'package:home_care/Pages/HomePage/Widget/appoimnet_widget.dart';
 import 'package:home_care/Pages/HomePage/Widget/emergency_floating.dart';
 import 'package:home_care/Pages/HomePage/Widget/emergency_widget.dart';
@@ -7,6 +9,61 @@ import 'package:home_care/Pages/HomePage/Widget/profesnal_widget.dart';
 import 'package:home_care/Pages/HomePage/Widget/quick_widget.dart';
 import 'package:home_care/Pages/HomePage/Widget/searchbar_widgit.dart';
 import 'package:home_care/Pages/HomePage/Widget/services_widget.dart';
+
+// ── Notification bell with unread badge ───────────────────────────────────────
+
+class _NotificationBell extends StatelessWidget {
+  _NotificationBell();
+
+  final NotificationController _ctrl = Get.find<NotificationController>();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Get.toNamed('/notifications'),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.25),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.notifications_outlined,
+                color: Colors.white, size: 24),
+          ),
+          Obx(() {
+            final count = _ctrl.unreadCount;
+            if (count == 0) return const SizedBox.shrink();
+            return Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                constraints:
+                    const BoxConstraints(minWidth: 18, minHeight: 18),
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
 
 class HomePageUi extends StatefulWidget {
   const HomePageUi({super.key});
@@ -19,6 +76,13 @@ class _HomePageUiState extends State<HomePageUi> {
   // Initial position for the floating button
   double posX = 280;
   double posY = 500;
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +112,34 @@ class _HomePageUiState extends State<HomePageUi> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── Top bar: greeting + notification bell ──
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _greeting(),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const Text(
+                                'Home Care',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          _NotificationBell(),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [QuickWidget(), EmergencyUi(), AppoimentUi()],

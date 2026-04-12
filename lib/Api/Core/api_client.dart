@@ -49,6 +49,106 @@ class ApiClient {
     }
   }
 
+  /// Make PUT request with token-aware headers
+  Future<dynamic> put(
+    String endpoint,
+    Map<String, dynamic> data, {
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final headers = await _getHeaders(requiresAuth);
+      final uri = Uri.parse("${ApiConfig.baseUrl}/$endpoint");
+
+      LoggerService.info('PUT $endpoint');
+      LoggerService.debug('Request body: ${jsonEncode(data)}');
+
+      final response = await http
+          .put(uri, headers: headers, body: jsonEncode(data))
+          .timeout(
+            const Duration(seconds: ApiConfig.timeout),
+            onTimeout: () => throw TimeoutException(
+              'Request timeout after ${ApiConfig.timeout}s',
+            ),
+          );
+
+      LoggerService.debug('Status code: ${response.statusCode}');
+      return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      LoggerService.error('Timeout error', e);
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    } catch (e) {
+      LoggerService.error('PUT request failed', e);
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    }
+  }
+
+  /// Make PATCH request with token-aware headers
+  Future<dynamic> patch(
+    String endpoint,
+    Map<String, dynamic> data, {
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final headers = await _getHeaders(requiresAuth);
+      final uri = Uri.parse("${ApiConfig.baseUrl}/$endpoint");
+
+      LoggerService.info('PATCH $endpoint');
+      LoggerService.debug('Request body: ${jsonEncode(data)}');
+
+      final request = http.Request('PATCH', uri)
+        ..headers.addAll(headers)
+        ..body = jsonEncode(data);
+
+      final streamedResp = await request.send().timeout(
+        const Duration(seconds: ApiConfig.timeout),
+        onTimeout: () => throw TimeoutException(
+          'Request timeout after ${ApiConfig.timeout}s',
+        ),
+      );
+      final response = await http.Response.fromStream(streamedResp);
+
+      LoggerService.debug('Status code: ${response.statusCode}');
+      return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      LoggerService.error('Timeout error', e);
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    } catch (e) {
+      LoggerService.error('PATCH request failed', e);
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    }
+  }
+
+  /// Make DELETE request with token-aware headers
+  Future<dynamic> delete(
+    String endpoint, {
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final headers = await _getHeaders(requiresAuth);
+      final uri = Uri.parse("${ApiConfig.baseUrl}/$endpoint");
+
+      LoggerService.info('DELETE $endpoint');
+
+      final response = await http
+          .delete(uri, headers: headers)
+          .timeout(
+            const Duration(seconds: ApiConfig.timeout),
+            onTimeout: () => throw TimeoutException(
+              'Request timeout after ${ApiConfig.timeout}s',
+            ),
+          );
+
+      LoggerService.debug('Status code: ${response.statusCode}');
+      return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      LoggerService.error('Timeout error', e);
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    } catch (e) {
+      LoggerService.error('DELETE request failed', e);
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    }
+  }
+
   /// Make GET request with token-aware headers
   Future<dynamic> get(
     String endpoint, {

@@ -15,11 +15,13 @@ import 'package:home_care/Pages/Profile/payments_page.dart';
 import 'package:home_care/Pages/Professional/professnal_page.dart';
 import 'package:home_care/Pages/Quick/quick_page.dart';
 import 'package:home_care/Pages/Services/services_page.dart';
+import 'package:home_care/Pages/Notifications/notifications_page.dart';
 import 'package:home_care/Pages/WelcomePage/welcome_page.dart';
 import 'package:home_care/Pages/LogInPage/login_page.dart';
 import 'package:home_care/Pages/OtpPage/otp_page.dart';
 import 'package:home_care/Pages/PhoneNumberPage/phone_number_page.dart';
 import 'package:home_care/Pages/SOS/sos_page.dart';
+import 'package:home_care/Pages/Map/nearby_map_page.dart';
 import 'package:home_care/Pages/Appointment/appointment_type_page.dart';
 import 'package:home_care/Pages/Appointment/doctor_selection_page.dart';
 import 'package:home_care/Pages/Appointment/appointment_booking_page.dart';
@@ -113,6 +115,13 @@ var pagePath = [
   ),
 
   GetPage(
+    name: "/nearby-map",
+    transition: Transition.rightToLeft,
+    page: () => const NearbyMapPage(),
+    middlewares: [AuthGuard()],
+  ),
+
+  GetPage(
     name: "/appointment-type",
     transition: Transition.rightToLeft,
     page: () => const AppointmentTypePage(),
@@ -164,6 +173,13 @@ var pagePath = [
   GetPage(
     name: "/book-now",
     page: () => BookNowPage(),
+    transition: Transition.rightToLeft,
+    middlewares: [AuthGuard()],
+  ),
+
+  GetPage(
+    name: "/notifications",
+    page: () => const NotificationsPage(),
     transition: Transition.rightToLeft,
     middlewares: [AuthGuard()],
   ),

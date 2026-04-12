@@ -1,10 +1,10 @@
 import 'package:get/get.dart';
 import 'package:home_care/Model/user_detail_model.dart';
-import 'package:home_care/Model/address_model.dart';
 import 'package:home_care/Api/Services/user_repository.dart';
 import 'package:home_care/Helper/logger_service.dart';
+import 'package:home_care/utils/token_storage.dart';
 
-/// Profile Controller - Manages user profile state with repository pattern
+/// Profile Controller - Manages user profile state with real API calls
 class ProfileController extends GetxController {
   final UserRepository _userRepository = UserRepository();
 
@@ -13,56 +13,38 @@ class ProfileController extends GetxController {
   RxBool isLoading = false.obs;
   RxString errorMessage = ''.obs;
   RxBool isProfileLoaded = false.obs;
-
-  // Mock user ID - In real app, this would come from auth
-  static const String _mockUserId = '1';
+  RxString userId = ''.obs;
+  RxString userRole = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
     LoggerService.info('ProfileController initialized');
-    _initializeMockUser();
+    _loadIdentityThenProfile();
   }
 
-  /// Initialize with mock user data for demo purposes
-  /// In production, fetch from API
-  void _initializeMockUser() {
-    try {
-      user.value = UserDetail(
-        userId: _mockUserId,
-        name: 'Alex Morgan',
-        email: 'alex@example.com',
-        phoneNumber: '+91 9876543210',
-        gender: 'MALE',
-        status: 'ACTIVE',
-        blockStatus: 'UNBLOCKED',
-        userService: 'UNSUBSCRIBED',
-        serviceStatus: 'NEW',
-        address1: Address(
-          houseNumber: '12A',
-          street: 'Jankipuram Sector-H',
-          landmark: 'Near City Mall',
-          pinCode: '226021',
-          latitude: '26.8467',
-          longitude: '80.9462',
-          isPrimary: true,
-        ),
-        address2: null,
-      );
-      isProfileLoaded.value = true;
-      LoggerService.success('Mock user initialized');
-    } catch (e) {
-      LoggerService.error('Error initializing mock user', e);
+  /// Load user ID from secure storage, then fetch live profile
+  Future<void> _loadIdentityThenProfile() async {
+    final id = await TokenStorage.getUserId();
+    final role = await TokenStorage.getUserRole();
+    if (id != null && id.isNotEmpty) {
+      userId.value = id;
+      userRole.value = role ?? 'PATIENT';
+      await fetchUserProfile();
+    } else {
+      LoggerService.warning('No user ID in storage – user not logged in');
     }
   }
 
   /// Fetch user profile from server
   Future<void> fetchUserProfile() async {
+    if (userId.value.isEmpty) return;
     try {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final result = await _userRepository.getUserProfile(userId: _mockUserId);
+      final result =
+          await _userRepository.getUserProfile(userId: userId.value);
 
       result.when(
         onSuccess: (userDetail) {
@@ -86,12 +68,13 @@ class ProfileController extends GetxController {
     required String email,
     required String gender,
   }) async {
+    if (userId.value.isEmpty) return false;
     try {
       isLoading.value = true;
       errorMessage.value = '';
 
       final result = await _userRepository.updateUserProfile(
-        userId: _mockUserId,
+        userId: userId.value,
         data: {'name': name, 'email': email, 'gender': gender},
       );
 
@@ -115,7 +98,7 @@ class ProfileController extends GetxController {
 
   /// Update user address
   Future<bool> updateAddress({
-    required String addressType, // 'address1' or 'address2'
+    required String addressType,
     required String houseNumber,
     required String street,
     required String landmark,
@@ -123,12 +106,13 @@ class ProfileController extends GetxController {
     required String latitude,
     required String longitude,
   }) async {
+    if (userId.value.isEmpty) return false;
     try {
       isLoading.value = true;
       errorMessage.value = '';
 
       final result = await _userRepository.updateUserAddress(
-        userId: _mockUserId,
+        userId: userId.value,
         addressType: addressType,
         addressData: {
           'houseNumber': houseNumber,
@@ -158,23 +142,37 @@ class ProfileController extends GetxController {
     }
   }
 
-  /// Navigate to profile page
-  void viewProfile() {
-    LoggerService.info('Navigating to profile page');
-    Get.offAllNamed('/profile');
+  /// Delete account and clear storage
+  Future<bool> deleteAccount() async {
+    if (userId.value.isEmpty) return false;
+    try {
+      isLoading.value = true;
+      final result =
+          await _userRepository.deleteAccount(userId: userId.value);
+      bool success = false;
+      result.when(
+        onSuccess: (_) {
+          success = true;
+          TokenStorage.clearAll();
+          Get.offAllNamed('/login');
+        },
+        onError: (error) {
+          errorMessage.value = error;
+        },
+      );
+      return success;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  /// Get current user name
+  /// Getters
   String get userName => user.value?.name ?? 'User';
-
-  /// Get current user email
   String get userEmail => user.value?.email ?? '';
-
-  /// Check if user has primary address
   bool get hasPrimaryAddress => user.value?.address1 != null;
+  bool get isAdmin =>
+      userRole.value == 'ADMIN' || userRole.value == 'SUPER_ADMIN';
 
   /// Refresh user profile
-  void refresh() {
-    fetchUserProfile();
-  }
+  void refresh() => fetchUserProfile();
 }
