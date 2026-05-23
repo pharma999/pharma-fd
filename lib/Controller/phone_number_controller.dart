@@ -136,16 +136,6 @@ class PhoneNumberController extends GetxController
 
       LoggerService.info('Submitting phone number: $phone');
 
-      // 🧪 DEMO MODE: Bypass API for testing phone numbers
-      const String demoPhone = '6386098744';
-      if (phone == demoPhone) {
-        LoggerService.success('✅ DEMO MODE: Using bypass phone number');
-        completePhoneNumber.value = phone;
-        await Future.delayed(const Duration(milliseconds: 800));
-        Get.toNamed('/otpPage', arguments: {'phoneNumber': phone});
-        return;
-      }
-
       final result = await _authRepository.login(phoneNumber: phone);
 
       result.when(
@@ -153,8 +143,14 @@ class PhoneNumberController extends GetxController
           LoggerService.success('OTP sent successfully');
           completePhoneNumber.value = phone;
 
-          // Navigate to OTP page with phone number
-          Get.toNamed('/otpPage', arguments: {'phoneNumber': phone});
+          // Pass verificationId so OtpController can use it in verifyOtp()
+          final verificationId =
+              (response as Map<String, dynamic>?)?['verification_id'] ?? '';
+
+          Get.toNamed('/otpPage', arguments: {
+            'phoneNumber': phone,
+            'verificationId': verificationId,
+          });
         },
         onError: (error) {
           errorMessage.value = error;

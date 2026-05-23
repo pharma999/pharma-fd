@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import '../../Api/Services/auth_repository.dart';
+import '../../Api/Core/api_result.dart';
 
 class LogInPage extends StatefulWidget {
   const LogInPage({super.key});
@@ -9,50 +13,54 @@ class LogInPage extends StatefulWidget {
 }
 
 class _LogInPageState extends State<LogInPage> {
+  final _auth = AuthRepository();
+
   bool isPhoneInput = true;
   String phoneNumber = '';
-  final List<TextEditingController> otpControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> otpFocusNodes = List.generate(4, (_) => FocusNode());
+  bool _loading = false;
+  String _error = '';
+  String _devHint = '';
+
+  // OTP resend countdown
+  int _resendSeconds = 0;
+  Timer? _resendTimer;
+
+  static const int _otpLength = 6;
+
+  final List<TextEditingController> otpControllers =
+      List.generate(_otpLength, (_) => TextEditingController());
+  final List<FocusNode> otpFocusNodes =
+      List.generate(_otpLength, (_) => FocusNode());
 
   @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 3; i++) {
-      otpFocusNodes[i].addListener(() {
-        if (otpFocusNodes[i].hasFocus && otpControllers[i].text.length == 1) {
-          otpFocusNodes[i + 1].requestFocus();
-        }
-      });
-    }
-    otpFocusNodes[3].addListener(() {
-      if (otpFocusNodes[3].hasFocus && otpControllers[3].text.length == 1) {
-        otpFocusNodes[3].unfocus();
-        _onOtpComplete();
+  void dispose() {
+    for (final c in otpControllers) c.dispose();
+    for (final f in otpFocusNodes) f.dispose();
+    _resendTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startResendTimer() {
+    _resendSeconds = 60;
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_resendSeconds <= 0) {
+        t.cancel();
+      } else {
+        setState(() => _resendSeconds--);
       }
     });
   }
 
-  @override
-  void dispose() {
-    for (var controller in otpControllers) {
-      controller.dispose();
-    }
-    for (var focusNode in otpFocusNodes) {
-      focusNode.dispose();
-    }
-    super.dispose();
-  }
-
   void _onKeyPressed(String key) {
+    if (_loading) return;
     setState(() {
+      _error = '';
       if (key == '⌫') {
         if (phoneNumber.isNotEmpty) {
           phoneNumber = phoneNumber.substring(0, phoneNumber.length - 1);
         }
-      } else if (RegExp(r'[0-9]').hasMatch(key)) {
+      } else if (RegExp(r'[0-9]').hasMatch(key) && phoneNumber.length < 10) {
         phoneNumber += key;
       }
     });
@@ -61,38 +69,79 @@ class _LogInPageState extends State<LogInPage> {
   void _onClearPressed() {
     setState(() {
       phoneNumber = '';
+      _error = '';
     });
   }
 
-  void _generateOtp() {
-    if (phoneNumber.length >= 10) {
+  Future<void> _generateOtp() async {
+    if (phoneNumber.length < 10) {
+      setState(() => _error = 'Please enter a valid 10-digit phone number');
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = '';
+      _devHint = '';
+    });
+
+    final result = await _auth.sendOtp(phoneNumber: '+91$phoneNumber');
+
+    setState(() => _loading = false);
+
+    if (result is Success) {
+      final data = (result as Success).data as Map<String, dynamic>;
+      final msg = (data['message'] ?? '').toString();
+      final devMode = msg.toUpperCase().contains('DEV');
+
       setState(() {
         isPhoneInput = false;
+        _error = '';
+        if (devMode) {
+          _devHint = 'DEV mode: use OTP 000000';
+          for (int i = 0; i < _otpLength; i++) {
+            otpControllers[i].text = '0';
+          }
+        }
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('OTP sent to +91 $phoneNumber')));
+      _startResendTimer();
+      FocusScope.of(context).requestFocus(otpFocusNodes[0]);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid phone number')),
-      );
+      setState(() => _error = (result as Error).message);
     }
   }
 
-  void _onOtpComplete() {
-    String otp = otpControllers.map((c) => c.text).join();
-    if (otp.length == 4) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('OTP verified: $otp')));
-      // Navigate to next page here if needed
+  Future<void> _resendOtp() async {
+    if (_resendSeconds > 0 || _loading) return;
+    await _generateOtp();
+    if (!isPhoneInput) {
+      // already switched; just restart timer (done inside _generateOtp)
+      setState(() {});
     }
   }
 
-  void _resendOtp() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('OTP resent')));
+  Future<void> _onOtpComplete() async {
+    final otp = otpControllers.map((c) => c.text).join();
+    if (otp.length < _otpLength) {
+      setState(() => _error = 'Enter the $_otpLength-digit OTP');
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = '';
+    });
+
+    final result = await _auth.verifyOtp(
+      phoneNumber: '+91$phoneNumber',
+      otp: otp,
+    );
+
+    setState(() => _loading = false);
+
+    if (result is Success) {
+      Get.offAllNamed('/bottomAppBar');
+    } else {
+      setState(() => _error = (result as Error).message);
+    }
   }
 
   @override
@@ -116,7 +165,6 @@ class _LogInPageState extends State<LogInPage> {
               ),
               const SizedBox(height: 60),
 
-              // PHONE INPUT SCREEN
               if (isPhoneInput) ...[
                 const Text(
                   'Enter your phone number',
@@ -128,68 +176,62 @@ class _LogInPageState extends State<LogInPage> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  "We'll send you a 4 digit verification code",
+                  "We'll send you a 6 digit verification code",
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
 
                 // Phone number display field
-                GestureDetector(
-                  onTap: () {},
-                  child: AbsorbPointer(
-                    absorbing: true,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        '+91',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Text(
-                            '+91',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              phoneNumber,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 18,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  phoneNumber,
-                                  style: const TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                if (phoneNumber.isNotEmpty)
-                                  GestureDetector(
-                                    onTap: _onClearPressed,
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.grey,
-                                      size: 24,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
+                            if (phoneNumber.isNotEmpty)
+                              GestureDetector(
+                                onTap: _onClearPressed,
+                                child: const Icon(Icons.close,
+                                    color: Colors.grey, size: 24),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
 
-                // CUSTOM KEYPAD (FIXED)
+                if (_error.isNotEmpty) _errorBanner(_error),
+
+                const SizedBox(height: 20),
+
                 Expanded(
                   child: SingleChildScrollView(
                     child: Center(
@@ -218,12 +260,11 @@ class _LogInPageState extends State<LogInPage> {
 
                 const SizedBox(height: 32),
 
-                // Generate OTP button
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _generateOtp,
+                    onPressed: _loading ? null : _generateOtp,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
@@ -231,39 +272,86 @@ class _LogInPageState extends State<LogInPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'GENERATE OTP',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Text(
+                            'GENERATE OTP',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
               ],
 
               // OTP INPUT SCREEN
               if (!isPhoneInput) ...[
-                const Text(
-                  'Enter OTP',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios, size: 18),
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            _resendTimer?.cancel();
+                            setState(() {
+                              isPhoneInput = true;
+                              _error = '';
+                              _devHint = '';
+                              for (final c in otpControllers) c.clear();
+                            });
+                          },
                   ),
-                ),
-                const SizedBox(height: 32),
+                  Expanded(
+                    child: Text(
+                      'OTP sent to +91 $phoneNumber',
+                      style:
+                          TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+
+                if (_devHint.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.amber.shade400),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.developer_mode,
+                          color: Colors.amber.shade700, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _devHint,
+                          style: TextStyle(
+                            color: Colors.amber.shade900,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+
                 Text(
-                  'Enter the 4 digit code sent to +91 $phoneNumber',
+                  'Enter the $_otpLength digit code sent to +91 $phoneNumber',
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(4, (index) {
+                  children: List.generate(_otpLength, (index) {
                     return SizedBox(
-                      width: 56,
+                      width: 44,
                       child: TextField(
                         controller: otpControllers[index],
                         focusNode: otpFocusNodes[index],
@@ -284,11 +372,14 @@ class _LogInPageState extends State<LogInPage> {
                         ),
                         onChanged: (value) {
                           if (value.length == 1) {
-                            if (index < 3) {
+                            if (index < _otpLength - 1) {
                               otpFocusNodes[index + 1].requestFocus();
                             } else {
+                              otpFocusNodes[index].unfocus();
                               _onOtpComplete();
                             }
+                          } else if (value.isEmpty && index > 0) {
+                            otpFocusNodes[index - 1].requestFocus();
                           }
                         },
                       ),
@@ -296,7 +387,12 @@ class _LogInPageState extends State<LogInPage> {
                   }),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                if (_error.isNotEmpty) _errorBanner(_error),
+
+                const SizedBox(height: 16),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -305,24 +401,32 @@ class _LogInPageState extends State<LogInPage> {
                       style: TextStyle(color: Colors.grey),
                     ),
                     GestureDetector(
-                      onTap: _resendOtp,
-                      child: const Text(
-                        'RESEND',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      onTap: (_resendSeconds > 0 || _loading)
+                          ? null
+                          : _resendOtp,
+                      child: _resendSeconds > 0
+                          ? Text(
+                              'Resend in ${_resendSeconds}s',
+                              style: TextStyle(
+                                  color: Colors.grey.shade500, fontSize: 13),
+                            )
+                          : const Text(
+                              'RESEND',
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 32),
 
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _onOtpComplete,
+                    onPressed: _loading ? null : _onOtpComplete,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
@@ -330,25 +434,44 @@ class _LogInPageState extends State<LogInPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'VERIFY & CONTINUE',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Text(
+                            'VERIFY & CONTINUE',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
               ],
-
-              if (isPhoneInput) const Spacer(),
-              if (isPhoneInput) ...[],
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _errorBanner(String msg) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(children: [
+          Icon(Icons.error_outline, color: Colors.red.shade600, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(msg,
+                style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+          ),
+        ]),
+      );
 
   Widget _buildKeyButton(String key, String label) {
     return GestureDetector(
@@ -373,10 +496,8 @@ class _LogInPageState extends State<LogInPage> {
               ),
             ),
             if (label.isNotEmpty)
-              Text(
-                label,
-                style: const TextStyle(color: Colors.grey, fontSize: 10),
-              ),
+              Text(label,
+                  style: const TextStyle(color: Colors.grey, fontSize: 10)),
           ],
         ),
       ),

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../core/api_exception.dart';
@@ -174,13 +173,42 @@ class ApiClient {
             ),
           );
 
-      LoggerService.debug('Status code: ${response.statusCode}');
+      LoggerService.debug('GET status: ${response.statusCode}');
+      LoggerService.debug('GET body: ${response.body}');
       return _handleResponse(response);
     } on TimeoutException catch (e) {
       LoggerService.error('Timeout error', e);
       throw ApiException(ExceptionHandler.getErrorMessage(e));
     } catch (e) {
       LoggerService.error('GET request failed', e);
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    }
+  }
+
+  /// Upload a file via multipart/form-data — returns the parsed JSON response
+  Future<dynamic> uploadFile(String filePath, {String field = 'file', String endpoint = 'upload'}) async {
+    try {
+      final token = await TokenStorage.getToken();
+      final uri = Uri.parse("${ApiConfig.baseUrl}/$endpoint");
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Accept'] = 'application/json';
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      request.files.add(await http.MultipartFile.fromPath(field, filePath));
+
+      LoggerService.info('UPLOAD $endpoint');
+      final streamed = await request.send().timeout(
+        const Duration(seconds: ApiConfig.timeout),
+        onTimeout: () => throw TimeoutException('Upload timed out after ${ApiConfig.timeout}s'),
+      );
+      final response = await http.Response.fromStream(streamed);
+      LoggerService.debug('Upload status: ${response.statusCode}');
+      return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      throw ApiException(ExceptionHandler.getErrorMessage(e));
+    } catch (e) {
+      LoggerService.error('Upload failed', e);
       throw ApiException(ExceptionHandler.getErrorMessage(e));
     }
   }
@@ -194,11 +222,11 @@ class ApiClient {
     try {
       final jsonResponse = jsonDecode(response.body);
 
-      // Check for 401 Unauthorized - token expired
+      // Check for 401 Unauthorized
       if (response.statusCode == 401) {
-        LoggerService.warning('Unauthorized - token expired');
-        TokenStorage.clearToken();
-        throw ApiException('Session expired. Please login again.');
+        LoggerService.warning('Unauthorized 401');
+        throw ApiException(
+            jsonResponse['message'] ?? 'Session expired. Please login again.');
       }
 
       // Check for non-2xx status codes

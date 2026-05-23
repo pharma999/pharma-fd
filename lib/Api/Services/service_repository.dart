@@ -12,13 +12,15 @@ class ServiceRepository {
     try {
       final response = await _client.get(
         ApiEndpoints.serviceCategories,
-        requiresAuth: false,
+        requiresAuth: true,
       );
-      final data = response['data'] as List<dynamic>? ?? [];
-      final categories =
-          data.map((e) => ServiceCategory.fromJson(e)).toList();
+      LoggerService.debug('getCategories raw: $response');
+      final data = _extractList(response, fallbackKeys: ['categories']);
+      final categories = data.map((e) => ServiceCategory.fromJson(e)).toList();
+      LoggerService.info('Parsed ${categories.length} categories');
       return Success(categories);
     } catch (e) {
+      LoggerService.error('getCategories failed', e);
       return Error(ExceptionHandler.getErrorMessage(e));
     }
   }
@@ -27,11 +29,15 @@ class ServiceRepository {
     try {
       final response = await _client.get(
         ApiEndpoints.allServices,
-        requiresAuth: false,
+        requiresAuth: true,
       );
-      final data = response['data'] as List<dynamic>? ?? [];
-      return Success(data.map((e) => ServiceModel.fromJson(e)).toList());
+      LoggerService.debug('getAllServices raw: $response');
+      final data = _extractList(response, fallbackKeys: ['services']);
+      final list = data.map((e) => ServiceModel.fromJson(e)).toList();
+      LoggerService.info('Parsed ${list.length} services');
+      return Success(list);
     } catch (e) {
+      LoggerService.error('getAllServices failed', e);
       return Error(ExceptionHandler.getErrorMessage(e));
     }
   }
@@ -41,20 +47,38 @@ class ServiceRepository {
     try {
       final response = await _client.get(
         ApiEndpoints.categoryServices(categoryId),
-        requiresAuth: false,
+        requiresAuth: true,
       );
-      final data = response['data'] as List<dynamic>? ?? [];
+      LoggerService.debug('getCategoryServices raw: $response');
+      final data = _extractList(response, fallbackKeys: ['services']);
       return Success(data.map((e) => ServiceModel.fromJson(e)).toList());
     } catch (e) {
+      LoggerService.error('getCategoryServices failed', e);
       return Error(ExceptionHandler.getErrorMessage(e));
     }
+  }
+
+  /// Extracts a list from the API response, handling multiple shapes:
+  /// - `{data: [...]}` — standard wrapper
+  /// - `{categories: [...]}` or other named keys
+  /// - `[...]` — bare array response
+  List<dynamic> _extractList(dynamic response,
+      {List<String> fallbackKeys = const []}) {
+    if (response is List) return response;
+    if (response is Map) {
+      if (response['data'] is List) return response['data'] as List;
+      for (final key in fallbackKeys) {
+        if (response[key] is List) return response[key] as List;
+      }
+    }
+    return [];
   }
 
   Future<ApiResult<ServiceModel>> getServiceDetail(String serviceId) async {
     try {
       final response = await _client.get(
         ApiEndpoints.serviceDetail(serviceId),
-        requiresAuth: false,
+        requiresAuth: true,
       );
       return Success(ServiceModel.fromJson(response['data']));
     } catch (e) {
@@ -63,14 +87,24 @@ class ServiceRepository {
   }
 
   Future<ApiResult<List<ProfessionalModel>>> getProfessionals(
-      String serviceId) async {
+      String serviceId, {String? zoneId, bool advertised = false}) async {
     try {
-      final response = await _client.get(
-        ApiEndpoints.serviceProfessionals(serviceId),
-        requiresAuth: false,
-      );
-      final data = response['data'] as List<dynamic>? ?? [];
-      return Success(data.map((e) => ProfessionalModel.fromJson(e)).toList());
+      // Build query: service_name filter + optional zone_id + advertised flag
+      final params = <String, String>{};
+      if (serviceId.isNotEmpty) params['service_name'] = serviceId;
+      if (zoneId != null && zoneId.isNotEmpty) params['zone_id'] = zoneId;
+      if (advertised) params['advertised'] = 'true';
+
+      final endpoint = params.isEmpty
+          ? 'professionals'
+          : 'professionals?${params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
+
+      final response = await _client.get(endpoint, requiresAuth: true);
+      final raw = response is List
+          ? response
+          : (response['data'] ?? response['professionals'] ?? response['items'] ?? []);
+      final data = raw is List ? raw : <dynamic>[];
+      return Success(data.map((e) => ProfessionalModel.fromJson(e as Map<String, dynamic>)).toList());
     } catch (e) {
       return Error(ExceptionHandler.getErrorMessage(e));
     }

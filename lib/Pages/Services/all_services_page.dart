@@ -596,111 +596,61 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:home_care/Controller/service_cart_controller.dart';
+import 'package:home_care/Controller/service_controller.dart';
 import 'package:home_care/Controller/service_professionals_controller.dart';
 import 'package:home_care/Helper/logger_service.dart';
+import 'package:home_care/Model/service_model.dart';
 import 'package:home_care/Pages/Booking/booking_confirmation_page.dart';
 import 'package:home_care/Pages/Professionals/professional_detail_page.dart';
+
+// ── Icon / gradient helpers ───────────────────────────────────────────────────
+
+IconData _iconForService(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('nurs')) return Icons.health_and_safety;
+  if (n.contains('physio')) return Icons.accessibility_new;
+  if (n.contains('elder')) return Icons.elderly;
+  if (n.contains('mental') || n.contains('psych')) return Icons.psychology;
+  if (n.contains('check') || n.contains('consult')) return Icons.calendar_today;
+  if (n.contains('emergency') || n.contains('sos')) return Icons.warning_rounded;
+  if (n.contains('therapy')) return Icons.self_improvement;
+  if (n.contains('baby') || n.contains('child') || n.contains('pediatr')) return Icons.child_care;
+  if (n.contains('rehab')) return Icons.fitness_center;
+  if (n.contains('vaccin') || n.contains('immun')) return Icons.vaccines;
+  if (n.contains('lab') || n.contains('test')) return Icons.science;
+  if (n.contains('diet') || n.contains('nutri')) return Icons.restaurant_menu;
+  if (n.contains('dental') || n.contains('tooth')) return Icons.medical_services;
+  return Icons.medical_services;
+}
+
+const _kGradients = [
+  [Color(0xFF4F46E5), Color(0xFF312E81)],
+  [Color(0xFF9333EA), Color(0xFFF43F5E)],
+  [Color(0xFFFF512F), Color(0xFFDD2476)],
+  [Color(0xFF10B981), Color(0xFF047857)],
+  [Color(0xFFF59E0B), Color(0xFFB45309)],
+  [Color(0xFFE11D48), Color(0xFFBE123C)],
+  [Color(0xFF2563EB), Color(0xFF1E3A8A)],
+  [Color(0xFFFB923C), Color(0xFFF97316)],
+  [Color(0xFF16A34A), Color(0xFF065F46)],
+  [Color(0xFF0284C7), Color(0xFF0369A1)],
+  [Color(0xFF6366F1), Color(0xFF4338CA)],
+  [Color(0xFF7C3AED), Color(0xFF4C1D95)],
+];
+
+List<Color> _gradientForIndex(int i) =>
+    _kGradients[i % _kGradients.length].cast<Color>();
+
+// ── AllServicesPage ───────────────────────────────────────────────────────────
 
 class AllServicesPage extends StatelessWidget {
   const AllServicesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final ServiceCartController cartController =
-        Get.find<ServiceCartController>();
-    final ServiceProfessionalsController profController =
-        Get.find<ServiceProfessionalsController>();
-
-    final List<Map<String, dynamic>> services = [
-      {
-        'id': 'nursing_care',
-        'title': 'Nursing Care',
-        'icon': Icons.safety_check,
-        'gradient': [const Color(0xFF4F46E5), const Color(0xFF312E81)],
-        'description': 'Professional nursing care for patients at home',
-        'price': 500.0,
-      },
-      {
-        'id': 'physiotherapy',
-        'title': 'Physiotherapy',
-        'icon': Icons.show_chart,
-        'gradient': [const Color(0xFF9333EA), const Color(0xFFF43F5E)],
-        'description': 'Expert physiotherapy and rehabilitation services',
-        'price': 600.0,
-      },
-      {
-        'id': 'elder_care',
-        'title': 'Elder Care',
-        'icon': Icons.favorite,
-        'gradient': [const Color(0xFFFF512F), const Color(0xFFDD2476)],
-        'description': 'Comprehensive care services for elderly individuals',
-        'price': 550.0,
-      },
-      {
-        'id': 'mental_health',
-        'title': 'Mental Health',
-        'icon': Icons.psychology,
-        'gradient': [const Color(0xFF10B981), const Color(0xFF047857)],
-        'description': 'Counseling and mental health support services',
-        'price': 700.0,
-      },
-      {
-        'id': 'checkups',
-        'title': 'Checkups',
-        'icon': Icons.calendar_today,
-        'gradient': [const Color(0xFFF59E0B), const Color(0xFFB45309)],
-        'description': 'Regular health checkups and consultations',
-        'price': 400.0,
-      },
-      {
-        'id': 'emergency',
-        'title': 'Emergency',
-        'icon': Icons.warning,
-        'gradient': [const Color(0xFFE11D48), const Color(0xFFBE123C)],
-        'description': '24/7 emergency medical response',
-        'price': 1000.0,
-      },
-      {
-        'id': 'therapy',
-        'title': 'Therapy',
-        'icon': Icons.self_improvement,
-        'gradient': [const Color(0xFF2563EB), const Color(0xFF1E3A8A)],
-        'description': 'Behavioral and occupational therapy',
-        'price': 650.0,
-      },
-      {
-        'id': 'baby_care',
-        'title': 'Baby Care',
-        'icon': Icons.child_care,
-        'gradient': [const Color(0xFFFB923C), const Color(0xFFF97316)],
-        'description': 'Expert baby care and pediatric services',
-        'price': 450.0,
-      },
-      {
-        'id': 'rehabilitation',
-        'title': 'Rehabilitation',
-        'icon': Icons.health_and_safety,
-        'gradient': [const Color(0xFF16A34A), const Color(0xFF065F46)],
-        'description': 'Post-surgery rehabilitation and recovery',
-        'price': 750.0,
-      },
-      {
-        'id': 'vaccination',
-        'title': 'Vaccination',
-        'icon': Icons.vaccines,
-        'gradient': [const Color(0xFF0284C7), const Color(0xFF0369A1)],
-        'description': 'Immunization and vaccination services',
-        'price': 300.0,
-      },
-      {
-        'id': 'lab_tests',
-        'title': 'Lab Tests',
-        'icon': Icons.science,
-        'gradient': [const Color(0xFF6366F1), const Color(0xFF4338CA)],
-        'description': 'Home-based laboratory testing services',
-        'price': 350.0,
-      },
-    ];
+    final cartController = Get.find<ServiceCartController>();
+    final profController = Get.find<ServiceProfessionalsController>();
+    final serviceCtrl = Get.find<ServiceController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
@@ -711,186 +661,349 @@ class AllServicesPage extends StatelessWidget {
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: const Color(0xFF6BC4FF),
+        backgroundColor: const Color(0xFF1A56DB),
         foregroundColor: Colors.white,
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: services.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          childAspectRatio: 0.78,
-        ),
-        itemBuilder: (context, index) {
-          final service = services[index];
-          final List<Color> gradient = service['gradient'] as List<Color>;
-
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-              child: Column(
-                children: [
-                  Container(
-                    width: 58,
-                    height: 58,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: gradient,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Icon(
-                      service['icon'] as IconData,
-                      size: 28,
+        actions: [
+          Obx(() {
+            if (serviceCtrl.isLoadingServices.value) {
+              return const Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    service['title'] as String,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF312E81),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '₹${(service['price'] as double).toStringAsFixed(0)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    service['description'] as String,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      height: 1.3,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 38,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              cartController.addService(
-                                serviceId: service['id'] as String,
-                                title: service['title'] as String,
-                                icon: service['icon'] as IconData,
-                                color: gradient.first,
-                                price: service['price'] as double,
-                              );
+                ),
+              );
+            }
+            return IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: serviceCtrl.fetchAllServices,
+              tooltip: 'Refresh',
+            );
+          }),
+        ],
+      ),
+      body: Obx(() {
+        if (serviceCtrl.isLoadingServices.value) {
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: 6,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.78,
+            ),
+            itemBuilder: (_, __) => _ServiceCardSkeleton(),
+          );
+        }
 
-                              Get.snackbar(
-                                'Added to Cart',
-                                '${service['title']} added to cart',
-                                snackPosition: SnackPosition.BOTTOM,
-                                backgroundColor: Colors.green.shade600,
-                                colorText: Colors.white,
-                                duration: const Duration(seconds: 2),
-                                margin: const EdgeInsets.all(12),
-                                borderRadius: 10,
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF4F46E5),
-                              side: BorderSide(color: Colors.grey.shade300),
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: const Text(
-                              'Add to Cart',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: SizedBox(
-                          height: 38,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              profController.selectService(
-                                service['id'] as String,
-                                service['title'] as String,
-                              );
+        final services = serviceCtrl.services;
 
-                              Get.to(
-                                () => ServiceDetailPage(
-                                  serviceId: service['id'] as String,
-                                  title: service['title'] as String,
-                                  icon: service['icon'] as IconData,
-                                  gradient: gradient,
-                                  description: service['description'] as String,
-                                  price: service['price'] as double,
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4F46E5),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: const Text(
-                              'Book Now',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+        if (services.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.medical_services_outlined,
+                    size: 64, color: Colors.grey.shade300),
+                const SizedBox(height: 16),
+                Text(
+                  'No services available yet',
+                  style: TextStyle(
+                      fontSize: 15, color: Colors.grey.shade500),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: serviceCtrl.fetchAllServices,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
             ),
           );
-        },
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: services.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: 0.78,
+          ),
+          itemBuilder: (context, index) {
+            final service = services[index];
+            final gradient = _gradientForIndex(index);
+            final icon = _iconForService(service.name);
+
+            return _ServiceCard(
+              service: service,
+              gradient: gradient,
+              icon: icon,
+              onAddToCart: () {
+                cartController.addService(
+                  serviceId: service.id,
+                  title: service.name,
+                  icon: icon,
+                  color: gradient.first,
+                  price: service.basePrice,
+                );
+                Get.snackbar(
+                  'Added to Cart',
+                  '${service.name} added to cart',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green.shade600,
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 2),
+                  margin: const EdgeInsets.all(12),
+                  borderRadius: 10,
+                );
+              },
+              onBookNow: () {
+                profController.selectService(service.id, service.name);
+                Get.to(() => ServiceDetailPage(
+                      serviceId: service.id,
+                      title: service.name,
+                      icon: icon,
+                      gradient: gradient,
+                      description: service.description,
+                      price: service.basePrice,
+                    ));
+              },
+            );
+          },
+        );
+      }),
+    );
+  }
+}
+
+// ── Service Card ──────────────────────────────────────────────────────────────
+
+class _ServiceCard extends StatelessWidget {
+  final ServiceModel service;
+  final List<Color> gradient;
+  final IconData icon;
+  final VoidCallback onAddToCart;
+  final VoidCallback onBookNow;
+
+  const _ServiceCard({
+    required this.service,
+    required this.gradient,
+    required this.icon,
+    required this.onAddToCart,
+    required this.onBookNow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+        child: Column(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Icon(icon, size: 28, color: Colors.white),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              service.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF312E81),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '₹${service.basePrice.toStringAsFixed(0)}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.green.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              service.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.3,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 38,
+                    child: OutlinedButton(
+                      onPressed: onAddToCart,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF4F46E5),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text(
+                        'Add to Cart',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 38,
+                    child: ElevatedButton(
+                      onPressed: onBookNow,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text(
+                        'Book Now',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Skeleton loader ───────────────────────────────────────────────────────────
+
+class _ServiceCardSkeleton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey.shade200,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+              width: 90,
+              height: 12,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 8),
+          Container(
+              width: 50,
+              height: 11,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 8),
+          Container(
+              width: double.infinity,
+              height: 9,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 6),
+          Container(
+              width: 100,
+              height: 9,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4))),
+          const Spacer(),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(10))),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(10))),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1124,6 +1237,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                         onTap: () => Get.to(
                                           () => ProfessionalDetailPage(
                                             professionalId: pro.id,
+                                            serviceId: pro.serviceId,
                                             name: pro.name,
                                             role: pro.role,
                                             serviceName: pro.serviceName,
@@ -1138,6 +1252,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                                 pro.availableTimeStart,
                                             availableTimeEnd:
                                                 pro.availableTimeEnd,
+                                            price: pro.price,
                                           ),
                                         ),
                                         child: Container(
@@ -1353,6 +1468,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                           Get.to(
                                             () => ProfessionalDetailPage(
                                               professionalId: pro.id,
+                                              serviceId: pro.serviceId,
                                               name: pro.name,
                                               role: pro.role,
                                               serviceName: pro.serviceName,
@@ -1367,6 +1483,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                                   pro.availableTimeStart,
                                               availableTimeEnd:
                                                   pro.availableTimeEnd,
+                                              price: pro.price,
                                             ),
                                           );
                                         },
@@ -1384,6 +1501,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                                 Get.to(
                                                   () => ProfessionalDetailPage(
                                                     professionalId: pro.id,
+                                                    serviceId: pro.serviceId,
                                                     name: pro.name,
                                                     role: pro.role,
                                                     serviceName:
@@ -1399,6 +1517,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                                         pro.availableTimeStart,
                                                     availableTimeEnd:
                                                         pro.availableTimeEnd,
+                                                    price: pro.price,
                                                   ),
                                                 );
                                               }

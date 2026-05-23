@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:home_care/Api/Services/service_repository.dart';
 import 'package:home_care/Helper/logger_service.dart';
 import 'package:home_care/Model/service_model.dart';
+import 'package:home_care/utils/token_storage.dart';
 
 /// Manages service categories, service list and professional discovery
 class ServiceController extends GetxController {
@@ -20,7 +21,22 @@ class ServiceController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchCategories();
+    _initIfLoggedIn();
+  }
+
+  /// Only fetch if user has a token — avoids 401 on app cold start before login.
+  Future<void> _initIfLoggedIn() async {
+    final loggedIn = await TokenStorage.isLoggedIn();
+    if (loggedIn) {
+      fetchCategories();
+      fetchAllServices();
+    }
+  }
+
+  /// Call this from the home page immediately after login / on home page init.
+  Future<void> loadAll() async {
+    await fetchCategories();
+    await fetchAllServices();
   }
 
   Future<void> fetchCategories() async {

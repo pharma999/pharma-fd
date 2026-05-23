@@ -15,7 +15,7 @@ class ServiceCategory {
 
   factory ServiceCategory.fromJson(Map<String, dynamic> json) {
     return ServiceCategory(
-      id: json['id'] ?? '',
+      id: json['category_id'] ?? json['id'] ?? json['_id'] ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       icon: json['icon'] ?? '',
@@ -51,9 +51,9 @@ class ServiceModel {
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
     return ServiceModel(
-      id: json['id'] ?? '',
+      id: json['service_id'] ?? json['id'] ?? json['_id'] ?? '',
       categoryId: json['category_id'] ?? '',
-      name: json['name'] ?? '',
+      name: json['title'] ?? json['name'] ?? '',
       description: json['description'] ?? '',
       basePrice: (json['base_price'] ?? 0).toDouble(),
       unit: json['unit'] ?? 'per visit',
@@ -77,6 +77,19 @@ class ProfessionalModel {
   final String experience;
   final List<String> skills;
   final bool isAvailable;
+  final bool isAdvertised;
+  // Fields from backend professional response
+  final String roleName;
+  final String serviceNameVal;
+  final String zoneId;
+  final String zoneName;
+  final String bio;
+  final String qualification;
+  final int yearsExp;
+  final int durationMins;
+  final double hourlyRate;
+  final String timeStart;
+  final String timeEnd;
 
   ProfessionalModel({
     required this.id,
@@ -90,23 +103,57 @@ class ProfessionalModel {
     required this.experience,
     required this.skills,
     required this.isAvailable,
+    this.isAdvertised = false,
+    this.roleName = '',
+    this.serviceNameVal = '',
+    this.zoneId = '',
+    this.zoneName = '',
+    this.bio = '',
+    this.qualification = '',
+    this.yearsExp = 0,
+    this.durationMins = 30,
+    this.hourlyRate = 0,
+    this.timeStart = '',
+    this.timeEnd = '',
   });
 
   factory ProfessionalModel.fromJson(Map<String, dynamic> json) {
     return ProfessionalModel(
-      id: json['id'] ?? '',
+      id: json['professional_id'] ?? json['id'] ?? json['_id'] ?? '',
       userId: json['user_id'] ?? '',
       serviceId: json['service_id'] ?? '',
-      name: json['name'] ?? '',
-      profileImage: json['profile_image'] ?? '',
+      name: json['name'] ?? json['full_name'] ?? '',
+      profileImage: json['profile_image'] ?? json['image_url'] ?? '',
       rating: (json['rating'] ?? 0).toDouble(),
       totalReviews: json['total_reviews'] ?? 0,
-      price: (json['price'] ?? 0).toDouble(),
-      experience: json['experience'] ?? '',
+      price: (json['price'] ?? json['base_price'] ?? json['hourly_rate'] ?? 0).toDouble(),
+      experience: json['experience'] ?? json['specialization'] ?? json['role'] ?? '',
       skills: List<String>.from(json['skills'] ?? []),
-      isAvailable: json['is_available'] ?? false,
+      isAvailable: json['is_available'] ?? json['available'] ?? false,
+      isAdvertised: json['is_advertised'] ?? false,
+      roleName: json['role'] ?? '',
+      serviceNameVal: json['service_name'] ?? '',
+      zoneId: json['zone_id'] ?? '',
+      zoneName: json['zone_name'] ?? '',
+      bio: json['bio'] ?? '',
+      qualification: json['qualification'] ?? '',
+      yearsExp: json['years_experience'] ?? json['years_of_experience'] ?? 0,
+      durationMins: json['estimated_duration'] ?? 30,
+      hourlyRate: (json['hourly_rate'] ?? 0).toDouble(),
+      timeStart: json['available_time_start'] ?? '',
+      timeEnd: json['available_time_end'] ?? '',
     );
   }
+
+  // ── Convenience getters for UI compatibility ──────────────────────────────
+  String get role => roleName.isNotEmpty ? roleName : experience;
+  bool get available => isAvailable;
+  String get serviceName => serviceNameVal;
+  int get yearsExperience => yearsExp;
+  String get distance => zoneName.isNotEmpty ? zoneName : '';
+  int get estimatedDuration => durationMins;
+  String get availableTimeStart => timeStart;
+  String get availableTimeEnd => timeEnd;
 }
 
 class CartItem {

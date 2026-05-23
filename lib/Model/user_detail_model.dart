@@ -11,6 +11,8 @@ class UserDetail {
   final String blockStatus;
   final String userService;
   final String serviceStatus;
+  final String profileImage;
+  final String bloodGroup;
   final Address? address1;
   final Address? address2;
 
@@ -25,6 +27,8 @@ class UserDetail {
     required this.blockStatus,
     required this.userService,
     required this.serviceStatus,
+    this.profileImage = '',
+    this.bloodGroup = '',
     this.address1,
     this.address2,
   });
@@ -41,6 +45,8 @@ class UserDetail {
       blockStatus: json['block_status'] ?? 'UNBLOCKED',
       userService: json['user_service'] ?? 'UNSUBSCRIBED',
       serviceStatus: json['service_status'] ?? 'NEW',
+      profileImage: json['profile_image'] ?? '',
+      bloodGroup: json['blood_group'] ?? '',
       address1: json['address_1'] != null
           ? Address.fromJson(json['address_1'])
           : null,

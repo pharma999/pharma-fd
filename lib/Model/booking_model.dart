@@ -33,8 +33,8 @@ class BookingModel {
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
-      id: json['id'] ?? '',
-      userId: json['user_id'] ?? '',
+      id: json['booking_id'] ?? json['id'] ?? json['_id'] ?? '',
+      userId: json['patient_user_id'] ?? json['user_id'] ?? '',
       professionalId: json['professional_id'],
       professionalName: json['professional_name'],
       professionalImage: json['professional_image'],
@@ -42,10 +42,10 @@ class BookingModel {
       serviceName: json['service_name'] ?? '',
       status: json['status'] ?? 'PENDING',
       scheduledAt: json['scheduled_at'] ?? '',
-      address: json['address'],
+      address: json['patient_address'] ?? json['address'],
       totalAmount: (json['total_amount'] ?? 0).toDouble(),
       notes: json['notes'],
-      cancellationReason: json['cancellation_reason'],
+      cancellationReason: json['cancelled_reason'] ?? json['cancellation_reason'],
       createdAt: json['created_at'] ?? '',
     );
   }

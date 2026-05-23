@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:home_care/Controller/service_professionals_controller.dart';
 import 'package:home_care/Helper/logger_service.dart';
 import 'package:home_care/Pages/Booking/confirm_booking_page.dart';
 
 /// Professional Detail Page
 class ProfessionalDetailPage extends StatefulWidget {
   final String professionalId;
+  final String serviceId;
   final String name;
   final String role;
   final String serviceName;
@@ -17,10 +17,12 @@ class ProfessionalDetailPage extends StatefulWidget {
   final int estimatedDuration;
   final String availableTimeStart;
   final String availableTimeEnd;
+  final double price;
 
   const ProfessionalDetailPage({
     super.key,
     required this.professionalId,
+    required this.serviceId,
     required this.name,
     required this.role,
     required this.serviceName,
@@ -31,6 +33,7 @@ class ProfessionalDetailPage extends StatefulWidget {
     this.estimatedDuration = 30,
     this.availableTimeStart = '2:00 PM',
     this.availableTimeEnd = '4:00 PM',
+    this.price = 0,
   });
 
   @override
@@ -120,33 +123,59 @@ class _ProfessionalDetailPageState extends State<ProfessionalDetailPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.amber.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                color: Colors.amber,
-                                size: 18,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border:
+                                    Border.all(color: Colors.amber.shade200),
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${widget.rating} Rating',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star_rounded,
+                                      color: Colors.amber, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text('${widget.rating}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                            if (widget.serviceName.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: Colors.blue.shade200),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.medical_services_rounded,
+                                        color: Colors.blue.shade600,
+                                        size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(widget.serviceName,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                            color: Colors.blue.shade700)),
+                                  ],
                                 ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
                       ],
                     ),
@@ -167,9 +196,9 @@ class _ProfessionalDetailPageState extends State<ProfessionalDetailPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildInfoCard(
-                          icon: Icons.location_on_outlined,
-                          label: 'Distance',
-                          value: widget.distance,
+                          icon: Icons.map_outlined,
+                          label: widget.distance.isEmpty ? 'Zone' : 'Zone',
+                          value: widget.distance.isEmpty ? 'Any zone' : widget.distance,
                           color: Colors.green,
                         ),
                       ),
@@ -279,6 +308,7 @@ class _ProfessionalDetailPageState extends State<ProfessionalDetailPage> {
                               Get.to(
                                 () => ConfirmBookingPage(
                                   professionalId: widget.professionalId,
+                                  serviceId: widget.serviceId,
                                   professionalName: widget.name,
                                   professionalRole: widget.role,
                                   serviceName: widget.serviceName,
@@ -288,6 +318,7 @@ class _ProfessionalDetailPageState extends State<ProfessionalDetailPage> {
                                   estimatedDuration: widget.estimatedDuration,
                                   availableTimeStart: widget.availableTimeStart,
                                   availableTimeEnd: widget.availableTimeEnd,
+                                  price: widget.price,
                                 ),
                               );
                             }

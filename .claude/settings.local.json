@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/go project/home_care_backend/internal/handlers/**)",
+      "Bash(taskkill /F /PID 21156)"
+    ]
+  }
+}

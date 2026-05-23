@@ -62,20 +62,33 @@ class ProfileController extends GetxController {
     }
   }
 
+  /// Reload identity + profile — call this after login
+  Future<void> loadAfterLogin() => _loadIdentityThenProfile();
+
   /// Update user profile
   Future<bool> updateProfile({
     required String name,
     required String email,
     required String gender,
+    String bloodGroup = '',
+    String profileImageUrl = '',
   }) async {
     if (userId.value.isEmpty) return false;
     try {
       isLoading.value = true;
       errorMessage.value = '';
 
+      final data = <String, dynamic>{
+        'name': name,
+        'email': email,
+        'gender': gender,
+      };
+      if (bloodGroup.isNotEmpty) data['blood_group'] = bloodGroup;
+      if (profileImageUrl.isNotEmpty) data['profile_image'] = profileImageUrl;
+
       final result = await _userRepository.updateUserProfile(
         userId: userId.value,
-        data: {'name': name, 'email': email, 'gender': gender},
+        data: data,
       );
 
       bool success = false;
@@ -174,5 +187,6 @@ class ProfileController extends GetxController {
       userRole.value == 'ADMIN' || userRole.value == 'SUPER_ADMIN';
 
   /// Refresh user profile
+  @override
   void refresh() => fetchUserProfile();
 }

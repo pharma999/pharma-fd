@@ -1,556 +1,423 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:home_care/Controller/service_professionals_controller.dart';
+import 'package:home_care/Model/service_model.dart';
 import 'package:home_care/Pages/Professionals/professional_detail_page.dart';
 
-class AvailableProfessionalsUi extends StatefulWidget {
+/// Dynamic professionals list — data from API via ServiceProfessionalsController.
+class AvailableProfessionalsUi extends StatelessWidget {
   const AvailableProfessionalsUi({super.key});
 
   @override
-  State<AvailableProfessionalsUi> createState() =>
-      _AvailableProfessionalsUiState();
+  Widget build(BuildContext context) {
+    final ctrl = Get.find<ServiceProfessionalsController>();
+
+    return Obx(() {
+      if (ctrl.isLoading.value) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            children: List.generate(
+                3, (_) => const _ProfessionalCardSkeleton()),
+          ),
+        );
+      }
+
+      final list = ctrl.filtered;
+
+      if (list.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.person_search,
+                    size: 52, color: Colors.grey.shade300),
+                const SizedBox(height: 12),
+                Text(
+                  ctrl.searchQuery.isNotEmpty
+                      ? 'No results for "${ctrl.searchQuery.value}"'
+                      : 'No professionals available',
+                  style:
+                      TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+                if (ctrl.selectedCategoryId.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: ctrl.clearFilter,
+                    child: const Text('Clear filter'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: list.length,
+        itemBuilder: (_, i) => _ProfessionalCard(pro: list[i]),
+      );
+    });
+  }
 }
 
-class _AvailableProfessionalsUiState extends State<AvailableProfessionalsUi> {
-  bool showAll = false;
+// ── Professional Card ─────────────────────────────────────────────────────────
+
+class _ProfessionalCard extends StatelessWidget {
+  final ProfessionalModel pro;
+  const _ProfessionalCard({required this.pro});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ServiceProfessionalsController());
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with Clear Filter button
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+    return GestureDetector(
+      onTap: () => Get.to(() => ProfessionalDetailPage(
+            professionalId: pro.id,
+            serviceId: pro.serviceId,
+            name: pro.name,
+            role: pro.experience,
+            serviceName: pro.serviceName,
+            rating: pro.rating,
+            available: pro.isAvailable,
+            yearsExperience: pro.yearsExperience,
+            distance: pro.distance,
+            estimatedDuration: pro.estimatedDuration,
+            availableTimeStart: pro.availableTimeStart,
+            availableTimeEnd: pro.availableTimeEnd,
+            price: pro.price,
+          )),
+      child: Opacity(
+        opacity: pro.isAvailable ? 1.0 : 0.55,
+        child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: pro.isAvailable ? Colors.white : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: pro.isAvailable ? [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ] : [],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              _Avatar(name: pro.name, imageUrl: pro.profileImage),
+              const SizedBox(width: 14),
+              // Info
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Quick Service Professionals",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF312E81),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Obx(
-                      () => Text(
-                        controller.selectedServiceTitle.value,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(pro.name,
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A1F36))),
                         ),
+                        _RatingBadge(pro.rating),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    if (pro.experience.isNotEmpty)
+                      Text(pro.experience,
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade600)),
+                    const SizedBox(height: 8),
+                    // Skills chips
+                    if (pro.skills.isNotEmpty)
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: pro.skills
+                            .take(3)
+                            .map((s) => _SkillChip(s))
+                            .toList(),
                       ),
+                    const SizedBox(height: 10),
+                    // Footer row
+                    Row(
+                      children: [
+                        _AvailBadge(pro.isAvailable),
+                        const Spacer(),
+                        Text(
+                          '₹${pro.price.toStringAsFixed(0)}/visit',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1A56DB)),
+                        ),
+                        const SizedBox(width: 10),
+                        _BookButton(
+                          enabled: pro.isAvailable,
+                          onTap: () => Get.to(() => ProfessionalDetailPage(
+                                professionalId: pro.id,
+                                serviceId: pro.serviceId,
+                                name: pro.name,
+                                role: pro.experience,
+                                serviceName: pro.serviceName,
+                                rating: pro.rating,
+                                available: pro.isAvailable,
+                                yearsExperience: pro.yearsExperience,
+                                distance: pro.distance,
+                                estimatedDuration: pro.estimatedDuration,
+                                availableTimeStart: pro.availableTimeStart,
+                                availableTimeEnd: pro.availableTimeEnd,
+                                price: pro.price,
+                              )),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                Obx(
-                  () => controller.selectedService.value.isNotEmpty
-                      ? GestureDetector(
-                          onTap: () => controller.clearServiceSelection(),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.close,
-                                  size: 14,
-                                  color: Colors.red,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Clear',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.red.shade700,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ),
+      ),
+    );
+  }
+}
+
+// ── Sub-widgets ───────────────────────────────────────────────────────────────
+
+class _Avatar extends StatelessWidget {
+  final String name;
+  final String imageUrl;
+  const _Avatar({required this.name, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = name.trim().isNotEmpty
+        ? name.trim().split(' ').map((w) => w[0].toUpperCase()).take(2).join()
+        : 'P';
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1A56DB), Color(0xFF6EE7F7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: imageUrl.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _InitialsText(initials)))
+          : _InitialsText(initials),
+    );
+  }
+}
+
+class _InitialsText extends StatelessWidget {
+  final String text;
+  const _InitialsText(this.text);
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Text(text,
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20)),
+      );
+}
+
+class _RatingBadge extends StatelessWidget {
+  final double rating;
+  const _RatingBadge(this.rating);
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7E0),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.star_rounded, color: Colors.amber, size: 13),
+            const SizedBox(width: 2),
+            Text(rating.toStringAsFixed(1),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF92400E))),
+          ],
+        ),
+      );
+}
+
+class _SkillChip extends StatelessWidget {
+  final String label;
+  const _SkillChip(this.label);
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(label,
+            style: const TextStyle(
+                fontSize: 10,
+                color: Color(0xFF1A56DB),
+                fontWeight: FontWeight.w600)),
+      );
+}
+
+class _AvailBadge extends StatelessWidget {
+  final bool available;
+  const _AvailBadge(this.available);
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: available
+                  ? const Color(0xFF10B981)
+                  : Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(available ? 'Available' : 'Unavailable',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: available
+                      ? const Color(0xFF10B981)
+                      : Colors.grey.shade500)),
+        ],
+      );
+}
+
+class _BookButton extends StatelessWidget {
+  final bool enabled;
+  final VoidCallback onTap;
+  const _BookButton({required this.enabled, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            gradient: enabled
+                ? const LinearGradient(
+                    colors: [Color(0xFF1A56DB), Color(0xFF3B82F6)])
+                : null,
+            color: enabled ? null : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                        color: const Color(0xFF1A56DB).withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3))
+                  ]
+                : null,
+          ),
+          child: Text('Book',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: enabled ? Colors.white : Colors.grey.shade500)),
+        ),
+      );
+}
+
+// ── Skeleton loader ───────────────────────────────────────────────────────────
+
+class _ProfessionalCardSkeleton extends StatelessWidget {
+  const _ProfessionalCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3))
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(16))),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                    width: 120,
+                    height: 12,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 8),
+                Container(
+                    width: 80,
+                    height: 10,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                        width: 60,
+                        height: 22,
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(6))),
+                    const SizedBox(width: 8),
+                    Container(
+                        width: 50,
+                        height: 22,
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(6))),
+                  ],
                 ),
               ],
             ),
           ),
-
-          // Professionals List
-          Obx(() {
-            final allProfessionals = controller.filteredProfessionals;
-
-            if (allProfessionals.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 40,
-                  horizontal: 16,
-                ),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.person_off,
-                        size: 48,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No professionals available',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // Limit professionals based on showAll
-            final visibleProfessionals = showAll
-                ? allProfessionals
-                : allProfessionals.take(3).toList();
-
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: visibleProfessionals.length,
-              itemBuilder: (context, index) {
-                final pro = visibleProfessionals[index];
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        // Top Row: Avatar + Name + Rating
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Avatar
-                            GestureDetector(
-                              onTap: () => Get.to(
-                                () => ProfessionalDetailPage(
-                                  professionalId: pro.id,
-                                  name: pro.name,
-                                  role: pro.role,
-                                  serviceName: pro.serviceName,
-                                  rating: pro.rating,
-                                  available: pro.available,
-                                  yearsExperience: pro.yearsExperience,
-                                  distance: pro.distance,
-                                  estimatedDuration: pro.estimatedDuration,
-                                  availableTimeStart: pro.availableTimeStart,
-                                  availableTimeEnd: pro.availableTimeEnd,
-                                ),
-                              ),
-                              child: Container(
-                                width: 70,
-                                height: 70,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.blue.shade400,
-                                      Colors.indigo.shade600,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 40,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-
-                            // Info Column
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Name + Rating
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              pro.name,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF312E81),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              pro.role,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.black54,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.shade50,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.star_rounded,
-                                              color: Colors.amber,
-                                              size: 14,
-                                            ),
-                                            const SizedBox(width: 2),
-                                            Text(
-                                              pro.rating.toString(),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  // Experience + Distance + Duration
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.work_outline,
-                                        size: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${pro.yearsExperience} yrs exp',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Icon(
-                                        Icons.location_on_outlined,
-                                        size: 12,
-                                        color: Colors.blue.shade400,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        pro.distance,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.blue.shade400,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Icon(
-                                        Icons.schedule,
-                                        size: 12,
-                                        color: Colors.green.shade600,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${pro.estimatedDuration} min',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.green.shade600,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  // Same-Day Available Time Slots
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.access_time,
-                                        size: 12,
-                                        color: Colors.orange.shade600,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Today: ${pro.availableTimeStart} - ${pro.availableTimeEnd}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.orange.shade700,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-                        Divider(color: Colors.grey.shade200, height: 1),
-                        const SizedBox(height: 12),
-
-                        // Service Specialization Badge
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: Colors.blue.shade200,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.medical_services,
-                                size: 16,
-                                color: Colors.blue.shade600,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Specializes in: ${pro.serviceName}',
-                                  style: TextStyle(
-                                    color: Colors.blue.shade700,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Availability + Buttons Row
-                        Row(
-                          children: [
-                            // Availability Badge
-                            Icon(
-                              Icons.check_circle,
-                              color: pro.available ? Colors.green : Colors.grey,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              pro.available ? 'Available Now' : 'Unavailable',
-                              style: TextStyle(
-                                color: pro.available
-                                    ? Colors.green
-                                    : Colors.grey,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const Spacer(),
-
-                            // View Profile Button
-                            TextButton(
-                              onPressed: () => Get.to(
-                                () => ProfessionalDetailPage(
-                                  professionalId: pro.id,
-                                  name: pro.name,
-                                  role: pro.role,
-                                  serviceName: pro.serviceName,
-                                  rating: pro.rating,
-                                  available: pro.available,
-                                  yearsExperience: pro.yearsExperience,
-                                  distance: pro.distance,
-                                  estimatedDuration: pro.estimatedDuration,
-                                  availableTimeStart: pro.availableTimeStart,
-                                  availableTimeEnd: pro.availableTimeEnd,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                              ),
-                              child: Text(
-                                'View',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-
-                            // Book Now Button
-                            ElevatedButton(
-                              onPressed: pro.available
-                                  ? () => Get.to(
-                                      () => ProfessionalDetailPage(
-                                        professionalId: pro.id,
-                                        name: pro.name,
-                                        role: pro.role,
-                                        serviceName: pro.serviceName,
-                                        rating: pro.rating,
-                                        available: pro.available,
-                                        yearsExperience: pro.yearsExperience,
-                                        distance: pro.distance,
-                                        estimatedDuration:
-                                            pro.estimatedDuration,
-                                        availableTimeStart:
-                                            pro.availableTimeStart,
-                                        availableTimeEnd: pro.availableTimeEnd,
-                                      ),
-                                    )
-                                  : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: pro.available
-                                    ? Colors.blue.shade600
-                                    : Colors.grey.shade300,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text(
-                                'Book Now',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          }),
-
-          // Show More / Show Less Button
-          Obx(() {
-            final totalProfessionals = controller.filteredProfessionals.length;
-            if (totalProfessionals <= 3) {
-              return const SizedBox.shrink();
-            }
-
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      showAll = !showAll;
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF4F46E5),
-                    side: const BorderSide(
-                      color: Color(0xFF4F46E5),
-                      width: 1.5,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        showAll
-                            ? 'Show Less'
-                            : 'Show All (${totalProfessionals - 3} more)',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        showAll ? Icons.expand_less : Icons.expand_more,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
         ],
       ),
     );

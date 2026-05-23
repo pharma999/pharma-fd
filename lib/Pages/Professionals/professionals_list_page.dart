@@ -6,25 +6,35 @@ import 'package:home_care/Pages/Professionals/professional_detail_page.dart';
 class ProfessionalsListPage extends StatelessWidget {
   final String serviceId;
   final String serviceTitle;
+  final String? zoneName;
 
   const ProfessionalsListPage({
     super.key,
     required this.serviceId,
     required this.serviceTitle,
+    this.zoneName,
   });
 
   @override
   Widget build(BuildContext context) {
     final profController = Get.find<ServiceProfessionalsController>();
 
-    // Filter professionals for this service on page load
-    profController.selectService(serviceId, serviceTitle);
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(serviceTitle),
-        centerTitle: true,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(serviceTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            if ((zoneName ?? profController.selectedZoneId.value).isNotEmpty)
+              Text(
+                'Zone: ${zoneName ?? profController.selectedZoneId.value}',
+                style: const TextStyle(fontSize: 11, color: Colors.white70),
+              ),
+          ],
+        ),
+        centerTitle: false,
         elevation: 0,
         backgroundColor: const Color(0xFF6BC4FF),
         foregroundColor: Colors.white,
@@ -74,6 +84,7 @@ class ProfessionalsListPage extends StatelessWidget {
                   Get.to(
                     () => ProfessionalDetailPage(
                       professionalId: professional.id,
+                      serviceId: serviceId.isNotEmpty ? serviceId : professional.serviceId,
                       name: professional.name,
                       role: professional.role,
                       serviceName: professional.serviceName,
@@ -84,6 +95,7 @@ class ProfessionalsListPage extends StatelessWidget {
                       estimatedDuration: professional.estimatedDuration,
                       availableTimeStart: professional.availableTimeStart,
                       availableTimeEnd: professional.availableTimeEnd,
+                      price: professional.price,
                     ),
                   );
                 },
@@ -137,6 +149,24 @@ class ProfessionalsListPage extends StatelessWidget {
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
+                                if (professional.serviceName.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      professional.serviceName,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.blue.shade700,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [

@@ -7,12 +7,16 @@ import 'package:home_care/Pages/WelcomePage/welcome_page.dart';
 import 'package:home_care/Controller/notification_controller.dart';
 import 'package:home_care/Controller/profile_controller.dart';
 import 'package:home_care/Controller/service_cart_controller.dart';
+import 'package:home_care/Controller/service_controller.dart';
+import 'package:home_care/Controller/service_professionals_controller.dart';
 
 void main() {
-  // Initialize GetX Controllers
+  // Initialize GetX Controllers — order matters for dependency resolution
   Get.put(ProfileController());
   Get.put(ServiceCartController());
   Get.put(NotificationController());
+  Get.put(ServiceController());
+  Get.put(ServiceProfessionalsController());
 
   runApp(
     ScreenUtilInit(

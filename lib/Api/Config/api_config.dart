@@ -1,19 +1,15 @@
-// ── API Configuration ─────────────────────────────────────────────────────
-//
-// Override the base URL at build time using --dart-define:
-//   flutter run --dart-define=API_BASE_URL=http://192.168.1.x:8080/api
-//
-// Defaults:
-//   Android emulator  → http://10.0.2.2:8080/api
-//   iOS simulator     → http://localhost:8080/api
-//   Physical device   → set API_BASE_URL to your LAN IP
-//   Production        → set API_BASE_URL to your server URL
+import 'package:flutter/foundation.dart';
 
+// Override at build time: flutter run --dart-define=API_BASE_URL=http://192.168.x.x:8080/api
 class ApiConfig {
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8080/api',
-  );
+  static String get baseUrl {
+    const envUrl = String.fromEnvironment('API_BASE_URL');
+    if (envUrl.isNotEmpty) return envUrl;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8080/api';
+    }
+    return 'http://localhost:8080/api';
+  }
 
   static const int timeout = 30;
 }

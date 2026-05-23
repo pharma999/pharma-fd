@@ -15,7 +15,8 @@ class UserRepository {
 
       final response = await _apiClient.get('user/$userId', requiresAuth: true);
 
-      final userDetail = UserDetail.fromJson(response as Map<String, dynamic>);
+      final json = _extractData(response);
+      final userDetail = UserDetail.fromJson(json);
       LoggerService.success('User profile fetched successfully');
       return Success(userDetail);
     } catch (e) {
@@ -39,7 +40,8 @@ class UserRepository {
         requiresAuth: true,
       );
 
-      final userDetail = UserDetail.fromJson(response as Map<String, dynamic>);
+      final json = _extractData(response);
+      final userDetail = UserDetail.fromJson(json);
       LoggerService.success('User profile updated successfully');
       return Success(userDetail);
     } catch (e) {
@@ -63,7 +65,8 @@ class UserRepository {
         ...addressData,
       }, requiresAuth: true);
 
-      final userDetail = UserDetail.fromJson(response as Map<String, dynamic>);
+      final json = _extractData(response);
+      final userDetail = UserDetail.fromJson(json);
       LoggerService.success('User address updated successfully');
       return Success(userDetail);
     } catch (e) {
@@ -71,6 +74,16 @@ class UserRepository {
       LoggerService.error('Failed to update user address', errorMessage);
       return Error(errorMessage);
     }
+  }
+
+  /// Unwraps the API envelope: `{status, message, data}` → `data`.
+  /// Falls back to the raw map if it already looks like a user object.
+  Map<String, dynamic> _extractData(dynamic response) {
+    final map = response as Map<String, dynamic>;
+    if (map['data'] is Map<String, dynamic>) {
+      return map['data'] as Map<String, dynamic>;
+    }
+    return map;
   }
 
   /// Delete user account

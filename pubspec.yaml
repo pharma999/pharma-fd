@@ -52,6 +52,11 @@ dependencies:
   web_socket_channel: ^3.0.1
   fl_chart: ^0.69.0
   http: ^1.2.1
+  image_picker: ^1.1.2
+  path: ^1.9.0
+  share_plus: ^10.1.4
+  dio: ^5.7.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

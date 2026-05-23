@@ -133,6 +133,24 @@ class ApiEndpoints {
   static String superAdminDeleteAdmin(String id) => "super-admin/admins/$id";
   static const String superAdminSettings = "super-admin/settings";
 
+  // ── Wallet ────────────────────────────────────────────────────────────────
+  static const String walletBalance      = "wallet/balance";
+  static const String walletTopUp        = "wallet/topup";
+  static const String walletPay          = "wallet/pay";
+  static const String walletTransactions = "wallet/transactions";
+
+  // ── Promo Code ────────────────────────────────────────────────────────────
+  static const String validatePromo = "promo/validate";
+
+  // ── Booking Tracking ──────────────────────────────────────────────────────
+  static String bookingTracking(String id) => "bookings/$id/tracking";
+
+  // ── Dispute ───────────────────────────────────────────────────────────────
+  static const String raiseDispute = "disputes";
+
+  // ── Banners (public) ──────────────────────────────────────────────────────
+  static const String banners = "banners";
+
   // ── Chatbot ───────────────────────────────────────────────────────────────
   static const String chatbotMessage = "chatbot/message";
   static const String chatbotHistory = "chatbot/history";

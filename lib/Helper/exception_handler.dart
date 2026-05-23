@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:home_care/Api/Core/api_exception.dart';
 import 'logger_service.dart';
 
@@ -7,6 +8,11 @@ class ExceptionHandler {
     if (exception is ApiException) {
       LoggerService.error('ApiException', exception.message);
       return exception.message;
+    }
+
+    if (exception is SocketException) {
+      LoggerService.error('SocketException', exception.message);
+      return 'Cannot connect to server. Please check your network and try again.';
     }
 
     if (exception is FormatException) {
@@ -20,7 +26,9 @@ class ExceptionHandler {
     }
 
     LoggerService.error('Unknown Exception', exception.toString());
-    return 'An unexpected error occurred. Please try again.';
+    return exception.toString().isNotEmpty
+        ? exception.toString().replaceAll('Exception: ', '')
+        : 'An unexpected error occurred. Please try again.';
   }
 
   static bool isNetworkError(dynamic exception) {

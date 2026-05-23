@@ -193,7 +193,7 @@ class ServiceZone {
 
   factory ServiceZone.fromJson(Map<String, dynamic> json) {
     return ServiceZone(
-      id: json['id'] ?? '',
+      id: json['zone_id'] ?? json['id'] ?? json['_id'] ?? '',
       name: json['name'] ?? '',
       city: json['city'] ?? '',
       state: json['state'] ?? '',
