@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:home_care/Pages/Profile/widget/dashboard_card.dart';
+import 'package:home_care/Pages/Profile/Widget/dashboard_card.dart';
 import 'package:home_care/Pages/Profile/appointments_page.dart';
 import 'package:home_care/Pages/Profile/records_page.dart';
 import 'package:home_care/Pages/Profile/payments_page.dart';

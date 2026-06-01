@@ -1,5 +1,5 @@
-import '../core/api_client.dart';
-import '../config/api_endpoints.dart';
+import '../Core/api_client.dart';
+import '../Config/api_endpoints.dart';
 
 class AuthApi {
   final ApiClient _client = ApiClient();
