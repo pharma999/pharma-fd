@@ -7,6 +7,10 @@
         <!-- Internet is REQUIRED for Google Maps -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- 📹 Video Call (WebRTC) -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
 
         <!-- 💬 SMS Permissions (for OTP AutoFill) -->
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>

@@ -1086,7 +1086,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                   child: Icon(
                     widget.icon,
                     size: 100,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ),
@@ -1219,7 +1219,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
+                                  color: Colors.black.withValues(alpha: 0.03),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1551,7 +1551,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                               ),
                             ),
                           );
-                        }).toList(),
+                        }),
                         if (allProfessionals.length > 3)
                           SizedBox(
                             width: double.infinity,

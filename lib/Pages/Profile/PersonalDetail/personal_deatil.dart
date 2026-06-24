@@ -137,7 +137,7 @@
 //             children: [
 //               IconButton(
 //                 onPressed: () => Navigator.pop(context),
-//                 icon: const Icon(Icons.arrow_back, color: Colors.white),
+//                 icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
 //               ),
 //               const Expanded(
 //                 child: Center(
@@ -596,7 +596,7 @@ class PersonalDetailsPage extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: () => Get.offAllNamed("/profile"),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
               ),
               const Expanded(
                 child: Center(
@@ -736,7 +736,7 @@ class PersonalDetailsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8E54E9).withOpacity(0.3),
+            color: const Color(0xFF8E54E9).withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),

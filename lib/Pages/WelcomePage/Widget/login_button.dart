@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Config/colors_coning.dart';
 
 class LogInButton extends StatelessWidget {
   const LogInButton({super.key});
@@ -9,27 +10,32 @@ class LogInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
+      height: 52.h,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFFA5B4FC)),
-          padding: EdgeInsets.symmetric(vertical: 14.h),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
+          foregroundColor: kPrimary,
           elevation: 0,
-        ),
-        onPressed: () {
-          // print("Enter button submitted");
-          Get.offAllNamed("/enterPhoneNumberPage");
-        },
-        child: Text(
-          "LogIn",
-          style: TextStyle(
-            color: const Color(0xFF7C3AED),
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14.r),
           ),
+        ),
+        onPressed: () => Get.offAllNamed('/enterPhoneNumberPage'),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Get Started',
+              style: TextStyle(
+                color: kPrimary,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Icon(Icons.arrow_forward_rounded, color: kPrimary, size: 18.sp),
+          ],
         ),
       ),
     );

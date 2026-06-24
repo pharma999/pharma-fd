@@ -621,7 +621,7 @@ class _CartScreenState extends State<CartScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CartAppBar(
-                    onBack: () => Get.offAllNamed('/bottomAppBar'),
+                    onBack: () => Get.back(),
                     onMore: () => showOptionsBottomSheet(context),
                   ),
                   const SizedBox(height: 20),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Api/Core/api_client.dart';
+import 'package:home_care/Config/colors_coning.dart';
 import 'package:home_care/Pages/Appointment/doctor_selection_page.dart';
 
 class AppointmentBookingPage extends StatefulWidget {
@@ -10,10 +12,13 @@ class AppointmentBookingPage extends StatefulWidget {
 }
 
 class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
+  final _client = ApiClient();
+
   late Doctor doctor;
   late String appointmentType;
   String? selectedDate;
   String? selectedTime;
+  bool _isBooking = false;
   final TextEditingController notesController = TextEditingController();
 
   @override
@@ -30,6 +35,56 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
     super.dispose();
   }
 
+  Future<void> _confirm() async {
+    if (selectedDate == null || selectedTime == null) return;
+    setState(() => _isBooking = true);
+    try {
+      // Build ISO-8601 scheduled_at from selectedDate (d/m/y) + selectedTime
+      final parts = selectedDate!.split('/');
+      final day = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
+      final timeParts = selectedTime!.replaceAll(' AM', '').replaceAll(' PM', '').split(':');
+      var hour = int.parse(timeParts[0]);
+      if (selectedTime!.contains('PM') && hour != 12) hour += 12;
+      if (selectedTime!.contains('AM') && hour == 12) hour = 0;
+      final scheduledAt = DateTime(year, month, day, hour,
+          timeParts.length > 1 ? int.parse(timeParts[1]) : 0);
+
+      final res = await _client.post('appointments', {
+        'doctor_id':    doctor.id,
+        'type':         appointmentType.toUpperCase(),
+        'scheduled_at': scheduledAt.toUtc().toIso8601String(),
+        'notes':        notesController.text.trim(),
+      }, requiresAuth: true);
+
+      final bookingId = (res['data'] as Map<String, dynamic>?)?['appointment_id']
+          ?? (res['data'] as Map<String, dynamic>?)?['id']
+          ?? '';
+
+      if (!mounted) return;
+      Get.toNamed('/appointment-confirmation', arguments: {
+        'doctor':     doctor,
+        'type':       appointmentType,
+        'date':       selectedDate,
+        'time':       selectedTime,
+        'notes':      notesController.text,
+        'booking_id': bookingId,
+      });
+    } catch (e) {
+      if (!mounted) return;
+      Get.snackbar(
+        'Booking Failed',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: kError.withValues(alpha: 0.1),
+        colorText: kError,
+      );
+    } finally {
+      if (mounted) setState(() => _isBooking = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +93,7 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back, color: Colors.grey),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey, size: 20),
         ),
         title: const Text(
           'Book Appointment',
@@ -85,10 +140,14 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
                       color: const Color(0xFF00BCD4).withValues(alpha: 0.1),
                     ),
                     alignment: Alignment.center,
-                    child: Icon(
-                      doctor.profileImage,
-                      color: const Color(0xFF00BCD4),
-                      size: 24,
+                    child: Text(
+                      doctor.name.isNotEmpty
+                          ? doctor.name.split(' ').last[0].toUpperCase()
+                          : 'D',
+                      style: const TextStyle(
+                          color: Color(0xFF00BCD4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -236,28 +295,22 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          onPressed: selectedDate != null && selectedTime != null
-              ? () {
-                  Get.toNamed(
-                    '/appointment-confirmation',
-                    arguments: {
-                      'doctor': doctor,
-                      'type': appointmentType,
-                      'date': selectedDate,
-                      'time': selectedTime,
-                      'notes': notesController.text,
-                    },
-                  );
-                }
+          onPressed: (selectedDate != null && selectedTime != null && !_isBooking)
+              ? _confirm
               : null,
-          child: const Text(
-            'Confirm Appointment',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
+          child: _isBooking
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : const Text(
+                  'Confirm Appointment',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
         ),
       ),
     );

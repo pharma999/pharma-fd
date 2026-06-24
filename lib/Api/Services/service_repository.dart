@@ -25,13 +25,14 @@ class ServiceRepository {
     }
   }
 
-  Future<ApiResult<List<ServiceModel>>> getAllServices() async {
+  Future<ApiResult<List<ServiceModel>>> getAllServices(
+      {bool isQuick = false}) async {
     try {
-      final response = await _client.get(
-        ApiEndpoints.allServices,
-        requiresAuth: true,
-      );
-      LoggerService.debug('getAllServices raw: $response');
+      final endpoint = isQuick
+          ? '${ApiEndpoints.allServices}?is_quick=true'
+          : ApiEndpoints.allServices;
+      final response = await _client.get(endpoint, requiresAuth: true);
+      LoggerService.debug('getAllServices(isQuick=$isQuick) raw: $response');
       final data = _extractList(response, fallbackKeys: ['services']);
       final list = data.map((e) => ServiceModel.fromJson(e)).toList();
       LoggerService.info('Parsed ${list.length} services');
@@ -87,11 +88,19 @@ class ServiceRepository {
   }
 
   Future<ApiResult<List<ProfessionalModel>>> getProfessionals(
-      String serviceId, {String? zoneId, bool advertised = false}) async {
+      String serviceNameOrLabel, {
+      String? serviceId,   // exact service_id for precise backend filter
+      String? zoneId,
+      bool advertised = false,
+  }) async {
     try {
-      // Build query: service_name filter + optional zone_id + advertised flag
+      // Build query: prefer service_id (exact), fall back to service_name (fuzzy)
       final params = <String, String>{};
-      if (serviceId.isNotEmpty) params['service_name'] = serviceId;
+      if (serviceId != null && serviceId.isNotEmpty) {
+        params['service_id'] = serviceId;
+      } else if (serviceNameOrLabel.isNotEmpty) {
+        params['service_name'] = serviceNameOrLabel;
+      }
       if (zoneId != null && zoneId.isNotEmpty) params['zone_id'] = zoneId;
       if (advertised) params['advertised'] = 'true';
 

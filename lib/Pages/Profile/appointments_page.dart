@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Config/colors_coning.dart';
 import 'package:home_care/Controller/appointment_controller.dart';
 import 'package:home_care/Model/appointment_model.dart';
 
@@ -21,179 +22,195 @@ class _AppointmentsView extends StatefulWidget {
   State<_AppointmentsView> createState() => _AppointmentsViewState();
 }
 
-class _AppointmentsViewState extends State<_AppointmentsView> {
-  int _tab = 0;
+class _AppointmentsViewState extends State<_AppointmentsView>
+    with SingleTickerProviderStateMixin {
+  late TabController _tab;
 
-  static const _blue = Color(0xFF1A56DB);
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: kBackground,
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [_blue, Color(0xFF6BC4FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
-          ),
-        ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
-        ),
+        backgroundColor: kPrimary,
         leading: IconButton(
           onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: kSurface, size: 20),
         ),
         title: const Text('My Appointments',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(
+                color: kSurface,
+                fontWeight: FontWeight.bold,
+                fontSize: 18)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh_rounded, color: kSurface),
             onPressed: widget.ctrl.fetchMyAppointments,
           ),
         ],
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-          _TabBar(selected: _tab, onTap: (i) => setState(() => _tab = i)),
-          const SizedBox(height: 12),
-          Expanded(
-            child: Obx(() {
-              if (widget.ctrl.isLoadingAppointments.value) {
-                return const Center(child: CircularProgressIndicator(color: _blue));
-              }
-              if (widget.ctrl.errorMessage.value.isNotEmpty &&
-                  widget.ctrl.appointments.isEmpty) {
-                return _ErrorState(
-                  message: widget.ctrl.errorMessage.value,
-                  onRetry: widget.ctrl.fetchMyAppointments,
-                );
-              }
-              final list = _tab == 0
-                  ? widget.ctrl.upcomingAppointments
-                  : widget.ctrl.pastAppointments;
-
-              if (list.isEmpty) {
-                return _EmptyState(
-                  message: _tab == 0 ? 'No upcoming appointments' : 'No past appointments',
-                );
-              }
-              return RefreshIndicator(
-                color: _blue,
-                onRefresh: widget.ctrl.fetchMyAppointments,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  itemCount: list.length,
-                  itemBuilder: (_, i) => _AppointmentCard(
-                    appointment: list[i],
-                    ctrl: widget.ctrl,
-                  ),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Tab bar ────────────────────────────────────────────────────────────────────
-
-class _TabBar extends StatelessWidget {
-  final int selected;
-  final ValueChanged<int> onTap;
-  const _TabBar({required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _Tab(label: 'Upcoming', index: 0, selected: selected, onTap: onTap),
-        const SizedBox(width: 12),
-        _Tab(label: 'History', index: 1, selected: selected, onTap: onTap),
-      ],
-    );
-  }
-}
-
-class _Tab extends StatelessWidget {
-  final String label;
-  final int index;
-  final int selected;
-  final ValueChanged<int> onTap;
-  const _Tab({required this.label, required this.index, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isSel = selected == index;
-    return GestureDetector(
-      onTap: () => onTap(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 9),
-        decoration: BoxDecoration(
-          color: isSel ? const Color(0xFF1A56DB) : Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: isSel ? Colors.transparent : Colors.grey.shade300,
-          ),
-          boxShadow: isSel
-              ? [BoxShadow(color: const Color(0xFF1A56DB).withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3))]
-              : [],
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(0)),
         ),
-        child: Text(label,
-            style: TextStyle(
-              color: isSel ? Colors.white : Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            )),
+        bottom: TabBar(
+          controller: _tab,
+          labelColor: kSurface,
+          unselectedLabelColor: kSurface.withValues(alpha: 0.6),
+          indicatorColor: kAccent,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(
+              fontWeight: FontWeight.w700, fontSize: 13),
+          tabs: const [
+            Tab(text: 'Upcoming'),
+            Tab(text: 'History'),
+          ],
+        ),
+      ),
+      body: Obx(() {
+        if (widget.ctrl.isLoadingAppointments.value) {
+          return _buildSkeleton();
+        }
+        if (widget.ctrl.errorMessage.value.isNotEmpty &&
+            widget.ctrl.appointments.isEmpty) {
+          return _ErrorState(
+            message: widget.ctrl.errorMessage.value,
+            onRetry: widget.ctrl.fetchMyAppointments,
+          );
+        }
+        return TabBarView(
+          controller: _tab,
+          children: [
+            _AppointmentList(
+              list: widget.ctrl.upcomingAppointments,
+              emptyMsg: 'No upcoming appointments',
+              ctrl: widget.ctrl,
+            ),
+            _AppointmentList(
+              list: widget.ctrl.pastAppointments,
+              emptyMsg: 'No past appointments',
+              ctrl: widget.ctrl,
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 4,
+      itemBuilder: (_, __) => Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        height: 130,
+        decoration: BoxDecoration(
+            color: kSurface, borderRadius: BorderRadius.circular(18)),
+        child: Row(children: [
+          const _Shimmer(
+              width: 52,
+              height: 52,
+              radius: 26,
+              margin: EdgeInsets.all(16)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _Shimmer(width: 140, height: 14, radius: 6),
+                const SizedBox(height: 8),
+                _Shimmer(width: 100, height: 11, radius: 4),
+                const SizedBox(height: 12),
+                _Shimmer(width: 180, height: 34, radius: 10),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+        ]),
       ),
     );
   }
 }
 
-// ── Appointment card ───────────────────────────────────────────────────────────
+// ── Tab list ──────────────────────────────────────────────────────────────────
+
+class _AppointmentList extends StatelessWidget {
+  final List<AppointmentModel> list;
+  final String emptyMsg;
+  final AppointmentController ctrl;
+  const _AppointmentList(
+      {required this.list,
+      required this.emptyMsg,
+      required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    if (list.isEmpty) return _EmptyState(message: emptyMsg);
+    return RefreshIndicator(
+      color: kPrimary,
+      onRefresh: ctrl.fetchMyAppointments,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        itemCount: list.length,
+        itemBuilder: (_, i) => _AppointmentCard(
+          appointment: list[i],
+          ctrl: ctrl,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Appointment card ──────────────────────────────────────────────────────────
 
 class _AppointmentCard extends StatelessWidget {
   final AppointmentModel appointment;
   final AppointmentController ctrl;
-  const _AppointmentCard({required this.appointment, required this.ctrl});
+  const _AppointmentCard(
+      {required this.appointment, required this.ctrl});
 
-  static const _statusColors = {
-    'PENDING': Color(0xFFF59E0B),
-    'CONFIRMED': Color(0xFF1A56DB),
-    'IN_PROGRESS': Color(0xFF06B6D4),
-    'COMPLETED': Color(0xFF10B981),
-    'CANCELLED': Color(0xFFEF4444),
-    'NO_SHOW': Color(0xFF6B7280),
+  // All colors from colors_coning.dart
+  static const _statusColors = <String, Color>{
+    'PENDING':     kWarning,
+    'CONFIRMED':   kPrimary,
+    'IN_PROGRESS': kTeal,
+    'COMPLETED':   kSuccess,
+    'CANCELLED':   kError,
+    'NO_SHOW':     kTextMedium,
   };
 
-  static const _typeIcons = {
+  static const _typeIcons = <String, IconData>{
     'HOME_VISIT': Icons.home_outlined,
-    'ONLINE': Icons.video_call_outlined,
-    'QUICK': Icons.bolt_outlined,
-    'SCHEDULED': Icons.schedule,
-    'EMERGENCY': Icons.emergency_outlined,
+    'ONLINE':     Icons.video_call_outlined,
+    'QUICK':      Icons.bolt_outlined,
+    'SCHEDULED':  Icons.schedule,
+    'EMERGENCY':  Icons.emergency_outlined,
   };
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _statusColors[appointment.status] ?? const Color(0xFF6B7280);
-    final typeIcon = _typeIcons[appointment.type] ?? Icons.medical_services_outlined;
+    final statusColor =
+        _statusColors[appointment.status] ?? kTextMedium;
+    final typeIcon =
+        _typeIcons[appointment.type] ?? Icons.medical_services_outlined;
     final isUpcoming = appointment.isUpcoming;
 
     DateTime? dt;
-    try { dt = DateTime.parse(appointment.scheduledAt).toLocal(); } catch (_) {}
+    try {
+      dt = DateTime.parse(appointment.scheduledAt).toLocal();
+    } catch (_) {}
     final dateStr = dt != null
         ? '${dt.day} ${_month(dt.month)} ${dt.year}'
         : appointment.scheduledAt.length > 10
@@ -203,139 +220,181 @@ class _AppointmentCard extends StatelessWidget {
         ? '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
         : '';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      child: Column(
-        children: [
-          // Header row
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+      builder: (_, v, child) => Opacity(
+          opacity: v,
+          child: Transform.translate(
+              offset: Offset(0, 16 * (1 - v)), child: child)),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: kSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: kBorder),
+          boxShadow: [
+            BoxShadow(
+                color: kTextDark.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3))
+          ],
+        ),
+        child: Column(children: [
+          // Header
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A56DB).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty
-                      ? ClipOval(child: Image.network(appointment.doctorImage!, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(Icons.person, color: const Color(0xFF1A56DB), size: 28)))
-                      : Icon(Icons.person, color: const Color(0xFF1A56DB), size: 28),
+            padding: const EdgeInsets.all(14),
+            child: Row(children: [
+              Container(
+                width: 50, height: 50,
+                decoration: BoxDecoration(
+                  gradient: kPrimaryGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                        color: kPrimary.withValues(alpha: 0.25),
+                        blurRadius: 6)
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(appointment.doctorName ?? 'Doctor',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                      if (appointment.doctorSpecialty != null && appointment.doctorSpecialty!.isNotEmpty)
-                        Text(appointment.doctorSpecialty!,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                    ],
-                  ),
+                child: appointment.doctorImage?.isNotEmpty == true
+                    ? ClipOval(
+                        child: Image.network(
+                          appointment.doctorImage!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.person_rounded,
+                                  color: kSurface, size: 26),
+                        ),
+                      )
+                    : const Icon(Icons.person_rounded,
+                        color: kSurface, size: 26),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(appointment.doctorName ?? 'Doctor',
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: kTextDark)),
+                    if ((appointment.doctorSpecialty ?? '').isNotEmpty)
+                      Text(appointment.doctorSpecialty!,
+                          style: const TextStyle(
+                              fontSize: 12, color: kTextMedium)),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(appointment.status.replaceAll('_', ' '),
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor)),
+              ),
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: statusColor.withValues(alpha: 0.3)),
                 ),
-              ],
-            ),
+                child: Text(
+                  appointment.status.replaceAll('_', ' '),
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor),
+                ),
+              ),
+            ]),
           ),
+
           // Info strip
           Container(
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FB),
-              borderRadius: BorderRadius.circular(12),
+              color: kBackground,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade500),
-                const SizedBox(width: 6),
-                Text(dateStr, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                if (timeStr.isNotEmpty) ...[
-                  const SizedBox(width: 16),
-                  Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
-                  const SizedBox(width: 6),
-                  Text(timeStr, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                ],
-                const Spacer(),
-                Icon(typeIcon, size: 14, color: Colors.grey.shade500),
-                const SizedBox(width: 4),
-                Text(appointment.type.replaceAll('_', ' '),
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            child: Row(children: [
+              const Icon(Icons.calendar_today_rounded,
+                  size: 13, color: kTextLight),
+              const SizedBox(width: 5),
+              Text(dateStr,
+                  style: const TextStyle(
+                      fontSize: 12, color: kTextMedium)),
+              if (timeStr.isNotEmpty) ...[
+                const SizedBox(width: 14),
+                const Icon(Icons.access_time_rounded,
+                    size: 13, color: kTextLight),
+                const SizedBox(width: 5),
+                Text(timeStr,
+                    style: const TextStyle(
+                        fontSize: 12, color: kTextMedium)),
               ],
-            ),
+              const Spacer(),
+              Icon(typeIcon, size: 13, color: kTextLight),
+              const SizedBox(width: 4),
+              Text(appointment.type.replaceAll('_', ' '),
+                  style: const TextStyle(
+                      fontSize: 10, color: kTextLight)),
+            ]),
           ),
+
           if (appointment.fee > 0)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-              child: Row(
-                children: [
-                  Icon(Icons.currency_rupee, size: 14, color: Colors.grey.shade500),
-                  Text(appointment.fee.toStringAsFixed(0),
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
-                ],
-              ),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Row(children: [
+                const Icon(Icons.currency_rupee_rounded,
+                    size: 14, color: kSuccess),
+                Text(appointment.fee.toStringAsFixed(0),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        color: kSuccess,
+                        fontWeight: FontWeight.w700)),
+              ]),
             ),
-          // Action buttons (only for upcoming)
+
+          // Action buttons
           if (isUpcoming)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red.shade400,
-                        side: BorderSide(color: Colors.red.shade200),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: () => _confirmCancel(context),
-                      child: const Text('Cancel'),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: kError,
+                      side: BorderSide(
+                          color: kError.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
+                    onPressed: () => _confirmCancel(context),
+                    child: const Text('Cancel',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A56DB),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: () => _showDetails(context),
-                      child: const Text('Details'),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimary,
+                      foregroundColor: kSurface,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
+                    onPressed: () => _showDetails(context),
+                    child: const Text('Details',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
-                ],
-              ),
+                ),
+              ]),
             ),
-          if (!isUpcoming && appointment.meetingLink != null && appointment.meetingLink!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-              child: Row(
-                children: [
-                  const Icon(Icons.link, size: 14, color: Color(0xFF06B6D4)),
-                  const SizedBox(width: 6),
-                  Text('Meeting link available', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                ],
-              ),
-            ),
-        ],
+        ]),
       ),
     );
   }
@@ -344,13 +403,24 @@ class _AppointmentCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cancel Appointment'),
-        content: const Text('Are you sure you want to cancel this appointment?'),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cancel Appointment',
+            style: TextStyle(color: kTextDark)),
+        content: const Text(
+            'Are you sure you want to cancel this appointment?',
+            style: TextStyle(color: kTextMedium)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('No',
+                  style: TextStyle(color: kTextMedium))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kError,
+                foregroundColor: kSurface,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8))),
             onPressed: () {
               Navigator.pop(context);
               ctrl.cancelAppointment(appointment.id);
@@ -367,17 +437,19 @@ class _AppointmentCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AppointmentDetailSheet(appointment: appointment),
+      builder: (_) =>
+          _AppointmentDetailSheet(appointment: appointment),
     );
   }
 
   String _month(int m) => const [
-    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ][m];
+        '',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ][m];
 }
 
-// ── Detail sheet ───────────────────────────────────────────────────────────────
+// ── Detail sheet ──────────────────────────────────────────────────────────────
 
 class _AppointmentDetailSheet extends StatelessWidget {
   final AppointmentModel appointment;
@@ -387,34 +459,56 @@ class _AppointmentDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 20),
-          const Text('Appointment Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _DetailRow(Icons.person_outline, 'Doctor', appointment.doctorName ?? '—'),
-          if (appointment.doctorSpecialty != null)
-            _DetailRow(Icons.medical_services_outlined, 'Specialty', appointment.doctorSpecialty!),
-          _DetailRow(Icons.calendar_today, 'Scheduled', appointment.scheduledAt.length > 10 ? appointment.scheduledAt.substring(0, 16).replaceAll('T', ' ') : appointment.scheduledAt),
-          _DetailRow(Icons.category_outlined, 'Type', appointment.type.replaceAll('_', ' ')),
-          _DetailRow(Icons.info_outline, 'Status', appointment.status.replaceAll('_', ' ')),
-          if (appointment.fee > 0) _DetailRow(Icons.currency_rupee, 'Fee', '₹${appointment.fee.toStringAsFixed(0)}'),
-          if (appointment.address != null && appointment.address!.isNotEmpty)
-            _DetailRow(Icons.location_on_outlined, 'Address', appointment.address!),
-          if (appointment.notes != null && appointment.notes!.isNotEmpty)
-            _DetailRow(Icons.notes_outlined, 'Notes', appointment.notes!),
-          if (appointment.meetingLink != null && appointment.meetingLink!.isNotEmpty)
-            _DetailRow(Icons.video_call_outlined, 'Meeting', appointment.meetingLink!),
-          const SizedBox(height: 24),
-        ],
-      ),
+          color: kSurface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Center(
+          child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                  color: kBorder,
+                  borderRadius: BorderRadius.circular(2))),
+        ),
+        const SizedBox(height: 18),
+        const Text('Appointment Details',
+            style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: kTextDark)),
+        const SizedBox(height: 14),
+        const Divider(color: kDivider),
+        const SizedBox(height: 10),
+        _DetailRow(Icons.person_outline_rounded, 'Doctor',
+            appointment.doctorName ?? '—'),
+        if ((appointment.doctorSpecialty ?? '').isNotEmpty)
+          _DetailRow(Icons.medical_services_outlined, 'Specialty',
+              appointment.doctorSpecialty!),
+        _DetailRow(
+            Icons.calendar_today_rounded,
+            'Scheduled',
+            appointment.scheduledAt.length > 10
+                ? appointment.scheduledAt
+                    .substring(0, 16)
+                    .replaceAll('T', ' ')
+                : appointment.scheduledAt),
+        _DetailRow(Icons.category_outlined, 'Type',
+            appointment.type.replaceAll('_', ' ')),
+        _DetailRow(Icons.info_outline_rounded, 'Status',
+            appointment.status.replaceAll('_', ' ')),
+        if (appointment.fee > 0)
+          _DetailRow(Icons.currency_rupee_rounded, 'Fee',
+              '₹${appointment.fee.toStringAsFixed(0)}'),
+        if ((appointment.address ?? '').isNotEmpty)
+          _DetailRow(Icons.location_on_outlined, 'Address',
+              appointment.address!),
+        if ((appointment.notes ?? '').isNotEmpty)
+          _DetailRow(Icons.notes_rounded, 'Notes', appointment.notes!),
+        if ((appointment.meetingLink ?? '').isNotEmpty)
+          _DetailRow(Icons.video_call_outlined, 'Meeting',
+              appointment.meetingLink!),
+        const SizedBox(height: 16),
+      ]),
     );
   }
 }
@@ -429,33 +523,59 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF1A56DB)),
-          const SizedBox(width: 10),
-          SizedBox(width: 80, child: Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade500))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-        ],
-      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 15, color: kPrimary),
+        const SizedBox(width: 10),
+        SizedBox(
+            width: 80,
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 12, color: kTextMedium))),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: kTextDark))),
+      ]),
     );
   }
 }
 
-// ── Empty / Error states ───────────────────────────────────────────────────────
+// ── Empty / Error states ──────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   final String message;
   const _EmptyState({required this.message});
 
   @override
-  Widget build(BuildContext context) => Center(
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(message, style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: kPrimary.withValues(alpha: 0.06),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.calendar_today_outlined,
+                size: 44, color: kPrimary.withValues(alpha: 0.4)),
+          ),
+          const SizedBox(height: 16),
+          Text(message,
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: kTextDark)),
+          const SizedBox(height: 8),
+          const Text('Your appointments will appear here.',
+              style: TextStyle(color: kTextMedium, fontSize: 13)),
         ]),
-      );
+      ),
+    );
+  }
 }
 
 class _ErrorState extends StatelessWidget {
@@ -464,13 +584,79 @@ class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.message, required this.onRetry});
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.error_outline, size: 52, color: Colors.red.shade300),
-          const SizedBox(height: 12),
-          Text(message, style: TextStyle(color: Colors.grey.shade600), textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.error_outline_rounded,
+            size: 52, color: kError.withValues(alpha: 0.6)),
+        const SizedBox(height: 12),
+        Text(message,
+            style: const TextStyle(color: kTextMedium),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimary, foregroundColor: kSurface),
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded, size: 18),
+          label: const Text('Retry'),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Shimmer skeleton ──────────────────────────────────────────────────────────
+
+class _Shimmer extends StatefulWidget {
+  final double? width;
+  final double height;
+  final double radius;
+  final EdgeInsetsGeometry? margin;
+  const _Shimmer(
+      {this.width,
+      required this.height,
+      this.radius = 8,
+      this.margin});
+
+  @override
+  State<_Shimmer> createState() => _ShimmerState();
+}
+
+class _ShimmerState extends State<_Shimmer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<Color?> _color;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
+    _color = ColorTween(begin: kBorder, end: kDivider)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _color,
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        margin: widget.margin,
+        decoration: BoxDecoration(
+          color: _color.value,
+          borderRadius: BorderRadius.circular(widget.radius),
+        ),
+      ),
+    );
+  }
 }

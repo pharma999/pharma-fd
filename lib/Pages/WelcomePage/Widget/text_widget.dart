@@ -10,42 +10,35 @@ class TextWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Title
         Text(
           AppString.appName,
           style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF312E81),
+            fontSize: 22.sp,
+            fontWeight: FontWeight.w800,
+            fontFamily: 'Poppins',
+            color: Colors.white,
+            letterSpacing: -0.5,
           ),
         ),
-        SizedBox(height: 16.h),
-
-        // Subtitle
+        SizedBox(height: 14.h),
         Text(
           WelcomePageString.postDischarge,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 20.sp, color: const Color(0xFF4338CA)),
+          style: TextStyle(
+            fontSize: 15.sp,
+            fontFamily: 'Poppins',
+            color: Colors.white.withValues(alpha: 0.85),
+            height: 1.5,
+          ),
         ),
-        SizedBox(height: 12.h),
-
-        // Taglines
+        SizedBox(height: 10.h),
         Text(
           WelcomePageString.qualityHealthCare,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 14.sp,
-            color: const Color(0xFF4338CA),
-            height: 1.5,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          WelcomePageString.doorStepForSmaless,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: const Color(0xFF4338CA),
+            fontSize: 13.sp,
+            fontFamily: 'Poppins',
+            color: Colors.white.withValues(alpha: 0.7),
             height: 1.5,
           ),
         ),

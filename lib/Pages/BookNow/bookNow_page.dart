@@ -38,8 +38,8 @@ class _BookNowPageState extends State<BookNowPage> {
         centerTitle: true,
         elevation: 0,
         leading: IconButton(
-          onPressed: () => Get.offAllNamed("/bottomAppBar"),
-          icon: Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
         ),
       ),
 

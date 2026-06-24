@@ -50,8 +50,42 @@ class BookingModel {
     );
   }
 
+  // ── Status helpers ──────────────────────────────────────────────────────────
   bool get isActive =>
-      status == 'PENDING' || status == 'ACCEPTED' || status == 'IN_PROGRESS';
+      status == 'PENDING'    ||
+      status == 'ASSIGNED'   ||
+      status == 'ACCEPTED'   ||
+      status == 'IN_PROGRESS';
+
+  /// True when the booking is live (provider is en route or serving).
+  bool get isInProgress => status == 'IN_PROGRESS';
+
+  /// Booking is waiting for assignment or acceptance.
+  bool get isPending =>
+      status == 'PENDING' || status == 'ASSIGNED';
+
+  /// Provider has accepted — heading to patient.
+  bool get isAccepted => status == 'ACCEPTED';
+
+  bool get isCompleted => status == 'COMPLETED';
+
+  bool get isCancelled =>
+      status == 'CANCELLED' || status == 'EXPIRED' || status == 'REJECTED';
+
+  /// Human-readable label shown on cards.
+  String get statusLabel {
+    switch (status) {
+      case 'PENDING':     return 'Pending';
+      case 'ASSIGNED':    return 'Finding Provider';
+      case 'ACCEPTED':    return 'Provider En Route';
+      case 'IN_PROGRESS': return 'In Progress';
+      case 'COMPLETED':   return 'Completed';
+      case 'CANCELLED':   return 'Cancelled';
+      case 'EXPIRED':     return 'Expired';
+      case 'REJECTED':    return 'Rejected';
+      default:            return status.replaceAll('_', ' ');
+    }
+  }
 }
 
 class PaymentModel {

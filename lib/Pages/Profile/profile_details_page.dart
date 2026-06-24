@@ -1,3 +1,4 @@
+import 'package:home_care/Config/colors_coning.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -31,7 +32,6 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   String _selectedBloodGroup = '';
   File? _pickedImage;
 
-  static const _primary = Color(0xFF1A56DB);
   static const _genders = ['MALE', 'FEMALE', 'OTHER'];
   static const _bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
@@ -87,15 +87,15 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: kBorder,
                       borderRadius: BorderRadius.circular(2))),
               ListTile(
-                leading: const Icon(Icons.photo_camera, color: _primary),
+                leading: const Icon(Icons.photo_camera, color: kPrimary),
                 title: const Text('Take a photo'),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: _primary),
+                leading: const Icon(Icons.photo_library, color: kPrimary),
                 title: const Text('Choose from gallery'),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
@@ -113,8 +113,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) {
       Get.snackbar('Required', 'Please enter your name',
-          backgroundColor: Colors.red.shade50,
-          colorText: Colors.red.shade700,
+          backgroundColor: kError.withValues(alpha: 0.1),
+          colorText: kError,
           snackPosition: SnackPosition.BOTTOM);
       return;
     }
@@ -165,8 +165,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       Get.snackbar(
         'Success',
         'Profile saved successfully',
-        backgroundColor: Colors.green.shade50,
-        colorText: Colors.green.shade700,
+        backgroundColor: kSuccess.withValues(alpha: 0.1),
+        colorText: kSuccess,
         snackPosition: SnackPosition.BOTTOM,
         icon: const Icon(Icons.check_circle, color: Colors.green),
       );
@@ -193,17 +193,19 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       final isNew = u == null || u.name.trim().isEmpty;
 
       return Scaffold(
-        backgroundColor: const Color(0xFFF4F6FB),
+        backgroundColor: kBackground,
         body: CustomScrollView(
           slivers: [
             // ── Header ───────────────────────────────────────────────────
             SliverAppBar(
               expandedHeight: 200,
               pinned: true,
-              backgroundColor: _primary,
-              foregroundColor: Colors.white,
+              backgroundColor: kPrimary,
+              foregroundColor: kSurface,
               leading: IconButton(
-                icon: Icon(_isEditing ? Icons.close : Icons.arrow_back),
+                icon: Icon(_isEditing
+                    ? Icons.close
+                    : Icons.arrow_back_ios_new_rounded, size: 20),
                 onPressed: () {
                   if (_isEditing && !isNew) {
                     _cancelEditing();
@@ -220,7 +222,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white)),
+                            strokeWidth: 2, color: kSurface)),
                   )
                 else
                   TextButton(
@@ -228,7 +230,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                     child: Text(
                       _isEditing ? 'Save' : 'Edit',
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: kSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 15),
                     ),
@@ -238,7 +240,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                 background: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF1A56DB), Color(0xFF6BC4FF)],
+                      colors: [kPrimary, kPrimaryLight],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -283,9 +285,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                         padding: const EdgeInsets.all(6),
                                         decoration: const BoxDecoration(
                                             shape: BoxShape.circle,
-                                            color: Colors.white),
+                                            color: kSurface),
                                         child: const Icon(Icons.camera_alt,
-                                            color: _primary, size: 18),
+                                            color: kPrimary, size: 18),
                                       ),
                                     ),
                                 ],
@@ -298,7 +300,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                     ? u!.name
                                     : 'New User',
                                 style: const TextStyle(
-                                    color: Colors.white,
+                                    color: kSurface,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold),
                               ),
@@ -313,7 +315,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                               Text(
                                 isNew ? 'Create Your Profile' : 'Edit Profile',
                                 style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.9),
+                                    color: kSurface.withValues(alpha: 0.9),
                                     fontSize: 13),
                               ),
                           ],
@@ -401,7 +403,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                     if (_isEditing)
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _primary,
+                          backgroundColor: kPrimary,
                           minimumSize: const Size(double.infinity, 52),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
@@ -413,13 +415,13 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2))
+                                    color: kSurface, strokeWidth: 2))
                             : Text(
                                 isNew ? 'Create Profile' : 'Save Changes',
                                 style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white),
+                                    color: kSurface),
                               ),
                       ),
                     const SizedBox(height: 32),
@@ -449,14 +451,14 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       height: 88,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-        color: Colors.white.withValues(alpha: 0.25),
+        border: Border.all(color: kSurface, width: 3),
+        color: kSurface.withValues(alpha: 0.25),
         image: img != null
             ? DecorationImage(image: img, fit: BoxFit.cover)
             : null,
       ),
       child: img == null
-          ? const Icon(Icons.person, size: 44, color: Colors.white)
+          ? const Icon(Icons.person, size: 44, color: kSurface)
           : null,
     );
   }
@@ -479,27 +481,27 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+          labelStyle: TextStyle(color: kTextMedium, fontSize: 13),
+          hintStyle: TextStyle(color: kTextLight, fontSize: 13),
           filled: true,
           fillColor: active ? Colors.white : Colors.grey.shade50,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300)),
+              borderSide: BorderSide(color: kBorder)),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300)),
+              borderSide: BorderSide(color: kBorder)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primary, width: 2)),
+              borderSide: const BorderSide(color: kPrimary, width: 2)),
           disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade200)),
+              borderSide: BorderSide(color: kBorder)),
         ),
         style: TextStyle(
-            color: active ? Colors.black87 : Colors.grey.shade600,
+            color: active ? Colors.black87 : kTextMedium,
             fontSize: 14),
       ),
     );
@@ -519,7 +521,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         children: [
           Text('Gender',
               style:
-                  TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  TextStyle(color: kTextMedium, fontSize: 13)),
           const SizedBox(height: 8),
           Row(
             children: _genders.map((g) {
@@ -533,10 +535,10 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 18, vertical: 9),
                     decoration: BoxDecoration(
-                      color: sel ? _primary : Colors.white,
+                      color: sel ? kPrimary : kSurface,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                          color: sel ? _primary : Colors.grey.shade300),
+                          color: sel ? kPrimary : kBorder),
                     ),
                     child: Text(g,
                         style: TextStyle(
@@ -570,7 +572,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         children: [
           Text('Blood Group',
               style:
-                  TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  TextStyle(color: kTextMedium, fontSize: 13)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -584,12 +586,12 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: sel ? Colors.red.shade600 : Colors.white,
+                    color: sel ? kPrimary : kSurface,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                         color: sel
-                            ? Colors.red.shade600
-                            : Colors.grey.shade300),
+                            ? kPrimary
+                            : kBorder),
                   ),
                   child: Text(bg,
                       style: TextStyle(
@@ -614,11 +616,11 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey.shade500),
+          Icon(icon, size: 16, color: kTextMedium),
           const SizedBox(width: 10),
           Text(label,
               style:
-                  TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  TextStyle(color: kTextMedium, fontSize: 13)),
           const Spacer(),
           Text(value,
               style: TextStyle(
@@ -647,7 +649,7 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kSurface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -661,13 +663,13 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: const Color(0xFF1A56DB)),
+              Icon(icon, size: 16, color: kPrimary),
               const SizedBox(width: 8),
               Text(title,
                   style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A56DB))),
+                      color: kPrimary)),
             ],
           ),
           const SizedBox(height: 12),

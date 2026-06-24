@@ -167,7 +167,7 @@ class ProfileController extends GetxController {
         onSuccess: (_) {
           success = true;
           TokenStorage.clearAll();
-          Get.offAllNamed('/login');
+          Get.offAllNamed('/enterPhoneNumberPage');
         },
         onError: (error) {
           errorMessage.value = error;

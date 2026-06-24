@@ -15,7 +15,7 @@ class CartAppBar extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back)),
+        IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20)),
         const Text(
           "My Cart",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

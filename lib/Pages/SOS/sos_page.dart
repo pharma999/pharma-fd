@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:home_care/Api/Core/api_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SOSPage extends StatefulWidget {
@@ -11,62 +12,28 @@ class SOSPage extends StatefulWidget {
 }
 
 class _SOSPageState extends State<SOSPage> {
+  final _client = ApiClient();
+
   Position? _currentPosition;
   bool _isLoading = false;
+  bool _isSosSent = false;
   String? _errorMessage;
-
-  // Mock nearby hospitals with coordinates (in real app, use actual API)
-  final List<Hospital> nearbyHospitals = [
-    Hospital(
-      id: '1',
-      name: 'City General Hospital',
-      address: 'Sector H, Jankipuram, Lucknow',
-      phone: '+91-9876543210',
-      latitude: 26.8124,
-      longitude: 80.9421,
-      distance: 0.5,
-      emergency: true,
-    ),
-    Hospital(
-      id: '2',
-      name: 'Apollo Hospitals',
-      address: 'Gomti Nagar, Lucknow',
-      phone: '+91-9876543211',
-      latitude: 26.8297,
-      longitude: 80.9859,
-      distance: 2.3,
-      emergency: true,
-    ),
-    Hospital(
-      id: '3',
-      name: 'Max Healthcare',
-      address: 'Aliganj, Lucknow',
-      phone: '+91-9876543212',
-      latitude: 26.8475,
-      longitude: 80.9489,
-      distance: 3.1,
-      emergency: false,
-    ),
-    Hospital(
-      id: '4',
-      name: 'Medanta Hospital',
-      address: 'Charbagh, Lucknow',
-      phone: '+91-9876543213',
-      latitude: 26.8245,
-      longitude: 80.9167,
-      distance: 4.2,
-      emergency: true,
-    ),
-  ];
+  List<Hospital> _hospitals = [];
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _init();
+  }
+
+  Future<void> _init() async {
+    setState(() => _isLoading = true);
+    await _getCurrentLocation();
+    await _fetchNearbyHospitals();
+    setState(() => _isLoading = false);
   }
 
   Future<void> _getCurrentLocation() async {
-    setState(() => _isLoading = true);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -82,14 +49,71 @@ class _SOSPageState extends State<SOSPage> {
       if (permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always) {
         final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings:
+              const LocationSettings(accuracy: LocationAccuracy.high),
         );
         setState(() => _currentPosition = position);
       }
     } catch (e) {
       setState(() => _errorMessage = e.toString());
-    } finally {
-      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchNearbyHospitals() async {
+    try {
+      final params = _currentPosition != null
+          ? {
+              'lat': _currentPosition!.latitude.toString(),
+              'lng': _currentPosition!.longitude.toString(),
+              'radius': '20',
+            }
+          : <String, String>{};
+      final res = await _client.get('hospitals',
+          requiresAuth: true, queryParams: params);
+      final raw = res['data'] ?? res['hospitals'] ?? [];
+      if (raw is List && raw.isNotEmpty) {
+        setState(() {
+          _hospitals = raw
+              .whereType<Map>()
+              .map((h) =>
+                  Hospital.fromJson(Map<String, dynamic>.from(h)))
+              .toList();
+        });
+        return;
+      }
+    } catch (_) {}
+    // Keep list empty — UI shows "no hospitals found" state
+  }
+
+  /// Records the SOS event in the backend and triggers an alert to admins.
+  Future<void> _triggerSOS() async {
+    if (_isSosSent) return;
+    try {
+      await _client.post('emergency/sos', {
+        'description': 'Emergency SOS triggered from app',
+        if (_currentPosition != null) ...{
+          'latitude': _currentPosition!.latitude.toString(),
+          'longitude': _currentPosition!.longitude.toString(),
+        },
+      }, requiresAuth: true);
+      if (mounted) setState(() => _isSosSent = true);
+      Get.snackbar(
+        'SOS Sent',
+        'Emergency alert sent. Help is on the way!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade700,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
+    } catch (_) {
+      // Still allow the user to call 112 / ambulance manually even if API fails
+      Get.snackbar(
+        'Network Error',
+        'Could not send SOS. Please call 112 directly.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.shade700,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -127,7 +151,7 @@ class _SOSPageState extends State<SOSPage> {
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back, color: Colors.grey),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey, size: 20),
         ),
         title: const Text(
           'Emergency SOS',
@@ -254,25 +278,58 @@ class _SOSPageState extends State<SOSPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Hospital List
-                  ...nearbyHospitals
-                      .where((h) => h.emergency)
-                      .map((hospital) => _buildHospitalCard(hospital))
-                      .toList(),
-
-                  const SizedBox(height: 20),
-
-                  // Other Hospitals
-                  const Text(
-                    'Other Nearby Hospitals',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  // SOS trigger button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSosSent ? null : _triggerSOS,
+                      icon: Icon(
+                          _isSosSent ? Icons.check_circle : Icons.sos),
+                      label: Text(_isSosSent
+                          ? 'SOS Sent — Help is coming'
+                          : 'Send Emergency SOS Alert'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _isSosSent ? Colors.green : Colors.red,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                  ...nearbyHospitals
-                      .where((h) => !h.emergency)
-                      .map((hospital) => _buildHospitalCard(hospital))
-                      .toList(),
+                  // Hospital List (from real API)
+                  if (_hospitals.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: Text(
+                          'No hospitals found nearby. Call 112.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ),
+                    )
+                  else ...[
+                    ..._hospitals
+                        .where((h) => h.emergency)
+                        .map((h) => _buildHospitalCard(h)),
+
+                    if (_hospitals.any((h) => !h.emergency)) ...[
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Other Nearby Hospitals',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      ..._hospitals
+                          .where((h) => !h.emergency)
+                          .map((h) => _buildHospitalCard(h)),
+                    ],
+                  ],
 
                   const SizedBox(height: 20),
 
@@ -373,7 +430,7 @@ class _SOSPageState extends State<SOSPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -529,4 +586,31 @@ class Hospital {
     required this.distance,
     required this.emergency,
   });
+
+  factory Hospital.fromJson(Map<String, dynamic> j) {
+    // Backend stores location as GeoJSON: {"type":"Point","coordinates":[lng,lat]}
+    double lat = 0, lng = 0;
+    final loc = j['location'];
+    if (loc is Map && loc['coordinates'] is List) {
+      final coords = loc['coordinates'] as List;
+      if (coords.length >= 2) {
+        lng = (coords[0] as num).toDouble();
+        lat = (coords[1] as num).toDouble();
+      }
+    }
+    // Distance may come back in meters from $near query
+    final distRaw = j['distance'] ?? j['distance_km'] ?? 0;
+    final distKm = distRaw is num ? distRaw.toDouble() / 1000 : 0.0;
+
+    return Hospital(
+      id:        j['hospital_id'] ?? j['_id'] ?? j['id'] ?? '',
+      name:      j['name'] as String? ?? 'Hospital',
+      address:   j['address'] as String? ?? '',
+      phone:     j['phone'] as String? ?? j['emergency_phone'] as String? ?? '',
+      latitude:  lat,
+      longitude: lng,
+      distance:  distKm,
+      emergency: j['has_emergency'] as bool? ?? j['emergency'] as bool? ?? true,
+    );
+  }
 }

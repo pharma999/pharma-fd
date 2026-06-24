@@ -127,7 +127,7 @@ class OptionTile extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 8),
       leading: CircleAvatar(
-        backgroundColor: bgColor.withOpacity(0.15),
+        backgroundColor: bgColor.withValues(alpha: 0.15),
         child: Icon(icon, color: iconColor),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),

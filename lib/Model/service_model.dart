@@ -33,6 +33,7 @@ class ServiceModel {
   final String unit;
   final String imageUrl;
   final bool isActive;
+  final bool isQuick;   // super-admin marks service as "Quick Book"
   final double rating;
   final int totalReviews;
 
@@ -45,6 +46,7 @@ class ServiceModel {
     required this.unit,
     required this.imageUrl,
     required this.isActive,
+    this.isQuick = false,
     required this.rating,
     required this.totalReviews,
   });
@@ -59,6 +61,7 @@ class ServiceModel {
       unit: json['unit'] ?? 'per visit',
       imageUrl: json['image_url'] ?? '',
       isActive: json['is_active'] ?? true,
+      isQuick:  json['is_quick']  ?? false,
       rating: (json['rating'] ?? 0).toDouble(),
       totalReviews: json['total_reviews'] ?? 0,
     );

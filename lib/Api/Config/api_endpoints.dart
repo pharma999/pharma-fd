@@ -32,7 +32,7 @@ class ApiEndpoints {
   static const String allServices = "services";
   static String categoryServices(String id) => "categories/$id/services";
   static String serviceDetail(String id) => "services/$id";
-  static String serviceProfessionals(String id) => "professionals";  // GET /professionals
+  static String serviceProfessionals(String id) => "professionals?service_id=$id";
   static String professionalDetail(String id) => "professionals/$id";
   static const String submitReview = "reviews";           // POST — professional_id in body
 

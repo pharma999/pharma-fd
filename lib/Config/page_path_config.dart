@@ -26,6 +26,7 @@ import 'package:home_care/Pages/Appointment/appointment_type_page.dart';
 import 'package:home_care/Pages/Appointment/doctor_selection_page.dart';
 import 'package:home_care/Pages/Appointment/appointment_booking_page.dart';
 import 'package:home_care/Pages/Appointment/appointment_confirmation_page.dart';
+import 'package:home_care/Pages/Chat/chat_list_page.dart';
 import 'package:home_care/Helper/auth_guards.dart';
 
 var pagePath = [
@@ -152,6 +153,14 @@ var pagePath = [
   GetPage(
     name: "/quickPage",
     page: () => QuickServicesPage(),
+    transition: Transition.rightToLeft,
+    middlewares: [AuthGuard()],
+  ),
+
+  // ── Peer Chat ──────────────────────────────────────────────────────────────
+  GetPage(
+    name: "/chat",
+    page: () => const ChatListPage(),
     transition: Transition.rightToLeft,
     middlewares: [AuthGuard()],
   ),

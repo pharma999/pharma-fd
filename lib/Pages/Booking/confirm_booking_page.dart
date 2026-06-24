@@ -45,16 +45,101 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
 
   bool _isProcessing = false;
   bool _fetchingLocation = false;
+  bool _loadingServices = false;
   String _paymentMethod = 'CASH';
   DateTime _scheduledAt = DateTime.now().add(const Duration(hours: 1));
   String _latStr = '';
   String _lngStr = '';
+
+  // Inline validation errors
+  String? _serviceError;
+  String? _addressError;
+
+  // Service selection — used when widget.serviceId is empty
+  List<Map<String, dynamic>> _availableServices = [];
+  String _selectedServiceId = '';
+  String _selectedServiceName = '';
+
+  String get _effectiveServiceId =>
+      widget.serviceId.isNotEmpty ? widget.serviceId : _selectedServiceId;
+  String get _effectiveServiceName =>
+      widget.serviceName.isNotEmpty ? widget.serviceName : _selectedServiceName;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.serviceId.isEmpty) _fetchServices();
+    // Auto-fetch GPS address so the address field is pre-filled
+    _autoFillAddress();
+  }
+
+  Future<void> _autoFillAddress() async {
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.low),
+      );
+      if (!mounted) return;
+      setState(() {
+        _latStr = pos.latitude.toString();
+        _lngStr = pos.longitude.toString();
+        if (_addressCtrl.text.trim().isEmpty) {
+          _addressCtrl.text =
+              'Lat: ${pos.latitude.toStringAsFixed(5)}, Lng: ${pos.longitude.toStringAsFixed(5)}';
+          _addressError = null; // clear any inline error once auto-filled
+        }
+      });
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
     _addressCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchServices() async {
+    setState(() => _loadingServices = true);
+    try {
+      final res = await _client.get('services', requiresAuth: true);
+      final raw = res['data'] ?? res['services'] ?? [];
+      final list = (raw is List ? raw : [])
+          .whereType<Map>()
+          .map<Map<String, dynamic>>((s) => Map<String, dynamic>.from(s))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _availableServices = list;
+        // Auto-select the first service that matches the professional's role,
+        // falling back to the first service in the list so Confirm always works.
+        if (list.isNotEmpty && _selectedServiceId.isEmpty) {
+          final roleKey = widget.professionalRole.toLowerCase();
+          final match = list.firstWhere(
+            (s) => (s['title'] ?? s['name'] ?? '')
+                .toString()
+                .toLowerCase()
+                .contains(roleKey),
+            orElse: () => list.first,
+          );
+          _selectedServiceId = match['service_id'] ?? match['id'] ?? match['_id'] ?? '';
+          _selectedServiceName = match['title'] ?? match['name'] ?? '';
+          _serviceError = null;
+        }
+      });
+    } catch (_) {
+      // Non-fatal — user sees a text field fallback
+    } finally {
+      if (mounted) setState(() => _loadingServices = false);
+    }
   }
 
   Future<void> _useCurrentLocation() async {
@@ -113,22 +198,32 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
   }
 
   Future<void> _confirm() async {
+    // Validate with inline errors — visible without dismissal
+    bool hasError = false;
+    if (_effectiveServiceId.isEmpty) {
+      setState(() => _serviceError = 'Please select a service to continue.');
+      hasError = true;
+    } else {
+      setState(() => _serviceError = null);
+    }
+
     final address = _addressCtrl.text.trim();
     if (address.isEmpty) {
-      Get.snackbar('Address Required', 'Please enter your address or use GPS.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.orange.shade100,
-          colorText: Colors.orange.shade900);
-      return;
+      setState(() => _addressError = 'Please enter your address or use GPS.');
+      hasError = true;
+    } else {
+      setState(() => _addressError = null);
     }
+
+    if (hasError) return;
 
     setState(() => _isProcessing = true);
 
     try {
       final scheduledIso = _scheduledAt.toUtc().toIso8601String();
       final body = <String, dynamic>{
-        if (widget.serviceId.isNotEmpty) 'service_id': widget.serviceId,
-        if (widget.serviceName.isNotEmpty) 'service_name': widget.serviceName,
+        'service_id': _effectiveServiceId,
+        'service_name': _effectiveServiceName,
         'professional_id': widget.professionalId,
         'booking_type': 'SCHEDULED',
         'payment_method': _paymentMethod,
@@ -227,6 +322,10 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
           children: [
             _buildProfessionalCard(),
             const SizedBox(height: 16),
+            if (widget.serviceId.isEmpty) ...[
+              _buildServicePickerSection(),
+              const SizedBox(height: 16),
+            ],
             _buildAddressSection(),
             const SizedBox(height: 16),
             _buildScheduleSection(),
@@ -324,18 +423,148 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     );
   }
 
+  Widget _buildServicePickerSection() {
+    return _sectionCard(
+      title: 'Select Service *',
+      icon: Icons.medical_services_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_loadingServices)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else if (_availableServices.isEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          color: Colors.orange.shade700, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'No services loaded. Enter a service name to continue.',
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.orange.shade800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Home Nursing, Physiotherapy...',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    prefixIcon: const Icon(
+                        Icons.medical_services_outlined, size: 18),
+                  ),
+                  onChanged: (v) => setState(() {
+                    _selectedServiceName = v.trim();
+                    if (v.trim().isNotEmpty) _serviceError = null;
+                  }),
+                ),
+              ],
+            )
+          else
+            DropdownButtonFormField<String>(
+              initialValue: _selectedServiceId.isEmpty ? null : _selectedServiceId,
+              hint: const Text('Choose a service'),
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 12),
+                prefixIcon: const Icon(
+                    Icons.medical_services_outlined, size: 18),
+              ),
+              items: _availableServices.map((svc) {
+                final id =
+                    svc['service_id'] ?? svc['id'] ?? svc['_id'] ?? '';
+                final name = svc['title'] ?? svc['name'] ?? '';
+                final price =
+                    (svc['base_price'] ?? svc['price'] ?? 0).toDouble();
+                return DropdownMenuItem<String>(
+                  value: id,
+                  child: Text(
+                    price > 0
+                        ? '$name  ·  ₹${price.toStringAsFixed(0)}'
+                        : name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+              onChanged: (id) {
+                if (id == null) return;
+                final svc = _availableServices.firstWhere(
+                    (s) =>
+                        (s['service_id'] ?? s['id'] ?? s['_id']) == id,
+                    orElse: () => {});
+                setState(() {
+                  _selectedServiceId = id;
+                  _selectedServiceName = svc['title'] ?? svc['name'] ?? '';
+                  _serviceError = null;
+                });
+              },
+            ),
+          if (_serviceError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(children: [
+                const Icon(Icons.error_outline, size: 14, color: Colors.red),
+                const SizedBox(width: 6),
+                Text(_serviceError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ]),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAddressSection() {
     return _sectionCard(
-      title: 'Your Address',
+      title: 'Your Address *',
       icon: Icons.location_on_outlined,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             controller: _addressCtrl,
+            onChanged: (_) {
+              if (_addressError != null && _addressCtrl.text.trim().isNotEmpty) {
+                setState(() => _addressError = null);
+              }
+            },
             decoration: InputDecoration(
               hintText: 'Enter your full address...',
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: _addressError != null ? Colors.red : Colors.grey.shade300,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: _addressError != null ? Colors.red : Colors.grey.shade300,
+                ),
+              ),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               suffixIcon: _fetchingLocation
@@ -353,6 +582,16 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             ),
             maxLines: 2,
           ),
+          if (_addressError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(children: [
+                const Icon(Icons.error_outline, size: 14, color: Colors.red),
+                const SizedBox(width: 6),
+                Text(_addressError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ]),
+            ),
           if (_latStr.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -482,7 +721,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
       ),
       child: Column(
         children: [
-          _summaryRow('Service', widget.serviceName),
+          _summaryRow('Service', _effectiveServiceName.isNotEmpty ? _effectiveServiceName : '—'),
           _summaryRow('Professional', widget.professionalName),
           _summaryRow('Duration', '${widget.estimatedDuration} min'),
           _summaryRow('Payment', _paymentMethod == 'CASH' ? 'Cash' : 'Online'),

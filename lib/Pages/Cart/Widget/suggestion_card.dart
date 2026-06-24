@@ -29,7 +29,7 @@ class SuggestionCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 15,
-            backgroundColor: color.withOpacity(0.15),
+            backgroundColor: color.withValues(alpha: 0.15),
             child: Icon(icon, size: 16, color: color),
           ),
           const Spacer(),

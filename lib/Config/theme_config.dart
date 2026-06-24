@@ -1,7 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:home_care/Config/colors_config.dart';
+import 'package:home_care/Config/colors_coning.dart';
 
-var lightTheme = ThemeData();
+var lightTheme = ThemeData(
+  useMaterial3: true,
+  colorScheme: ColorScheme.light(
+    primary: kPrimary,
+    onPrimary: kSurface,
+    surface: kBackground,
+    onSurface: kTextDark,
+    primaryContainer: kPrimaryLight,
+    onPrimaryContainer: kPrimaryDark,
+  ),
+  textTheme: const TextTheme(
+    headlineLarge: TextStyle(fontSize: 32, fontFamily: 'Poppins', fontWeight: FontWeight.w800, color: kPrimary),
+    headlineMedium: TextStyle(fontSize: 28, fontFamily: 'Poppins', fontWeight: FontWeight.w700, color: kTextDark),
+    headlineSmall: TextStyle(fontSize: 20, fontFamily: 'Poppins', fontWeight: FontWeight.w600, color: kTextDark),
+    bodyLarge: TextStyle(fontSize: 16, fontFamily: 'Poppins', fontWeight: FontWeight.w500, color: kTextDark),
+    bodyMedium: TextStyle(fontSize: 14, fontFamily: 'Poppins', fontWeight: FontWeight.w400, color: kTextMedium),
+    labelLarge: TextStyle(fontSize: 14, fontFamily: 'Poppins', fontWeight: FontWeight.w600, color: kTextDark),
+    labelMedium: TextStyle(fontSize: 12, fontFamily: 'Poppins', fontWeight: FontWeight.w400, color: kTextMedium),
+    labelSmall: TextStyle(fontSize: 10, fontFamily: 'Poppins', fontWeight: FontWeight.w300, color: kTextLight),
+  ),
+);
 var darkTheme = ThemeData(
   inputDecorationTheme: InputDecorationTheme(
     fillColor: dBackgroundColor,

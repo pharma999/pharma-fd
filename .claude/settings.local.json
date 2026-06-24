@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Read(//d/go project/home_care_backend/internal/handlers/**)",
-      "Bash(taskkill /F /PID 21156)"
+      "Bash(taskkill /F /PID 21156)",
+      "Bash(find /home/dell/home-care-bd/homecare_bd -type f -name \"*.go\" | wc -l)",
+      "Read(//home/dell/home-care-bd/homecare_bd/**)",
+      "Bash(wc -l /home/dell/health-care-fd/pharma-fd-admin/lib/screens/main/services/provider_services_screen.dart)",
+      "Read(//home/dell/health-care-fd/pharma-fd-admin/lib/screens/main/services/**)",
+      "Bash(go build *)"
     ]
   }
 }

@@ -35,12 +35,13 @@ class AuthGuard extends GetMiddleware {
       return null; // Allow access
     }
 
-    // User not authenticated - redirect to login
+    // User not authenticated — return redirect config so GetX handles the
+    // navigation itself.  Calling Get.offAllNamed() AND returning null causes
+    // two concurrent navigations and stack corruption.
     LoggerService.warning(
       'Unauthorized access attempt to: ${route.currentPage?.name}',
     );
-    Get.offAllNamed('/loginPage');
-    return null;
+    return GetNavConfig.fromRoute('/loginPage');
   }
 }
 

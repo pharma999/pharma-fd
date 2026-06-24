@@ -33,10 +33,11 @@ class ProfessionalPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.grey.shade300,
         leading: IconButton(
-          onPressed: () => Get.offAllNamed("/bottomAppBar"),
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Get.back(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.black, size: 20),
         ),
-        title: Text("Doctor Profile"),
+        title: const Text("Doctor Profile"),
         elevation: 0,
         centerTitle: true,
       ),

@@ -49,7 +49,7 @@ class _HelpViewState extends State<_HelpView> {
         ),
         leading: IconButton(
           onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
         ),
         title: const Text('Help & Support',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),

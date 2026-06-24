@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:home_care/Api/Config/api_config.dart';
 import 'package:home_care/Api/Services/auth_repository.dart';
+import 'package:home_care/Config/colors_coning.dart';
+import 'package:home_care/Controller/booking_controller.dart';
+import 'package:home_care/Controller/notification_controller.dart';
 import 'package:home_care/Controller/profile_controller.dart';
 import 'package:home_care/Model/user_detail_model.dart';
-import 'package:home_care/Pages/Bookings/booking_history_page.dart';
+import 'package:home_care/Pages/Chat/chat_list_page.dart';
 import 'package:home_care/Pages/Notifications/notifications_page.dart';
 import 'package:home_care/Pages/Profile/appointments_page.dart';
 import 'package:home_care/Pages/Profile/FamilyReport/family_report.dart';
@@ -15,421 +20,441 @@ import 'package:home_care/Pages/Profile/profile_details_page.dart';
 import 'package:home_care/Pages/Profile/records_page.dart';
 import 'package:home_care/Pages/Profile/wallet_page.dart';
 
-class Profile extends StatelessWidget {
-  Profile({super.key});
+// ── Profile (root tab — no back button) ──────────────────────────────────────
 
-  final ProfileController _ctrl = Get.find<ProfileController>();
+class Profile extends StatefulWidget {
+  const Profile({super.key});
+
+  @override
+  State<Profile> createState() => _ProfileState();
+}
+
+class _ProfileState extends State<Profile> with TickerProviderStateMixin {
+  late final ProfileController _ctrl;
+  late AnimationController _headerAnim;
+  late AnimationController _contentAnim;
+  late Animation<double> _headerFade;
+  late Animation<Offset> _contentSlide;
+  late Animation<double> _contentFade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = Get.find<ProfileController>();
+
+    _headerAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _contentAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+
+    _headerFade = CurvedAnimation(parent: _headerAnim, curve: Curves.easeOut);
+    _contentSlide = Tween<Offset>(
+            begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _contentAnim, curve: Curves.easeOut));
+    _contentFade =
+        CurvedAnimation(parent: _contentAnim, curve: Curves.easeOut);
+
+    // Start animations after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _headerAnim.forward();
+      Future.delayed(const Duration(milliseconds: 200),
+          () => _contentAnim.forward());
+    });
+  }
+
+  @override
+  void dispose() {
+    _headerAnim.dispose();
+    _contentAnim.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: kBackground,
       body: Obx(() {
         final u = _ctrl.user.value;
         final isLoading = _ctrl.isLoading.value;
 
-        if (isLoading && u == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (isLoading && u == null) return _buildSkeleton();
 
         return CustomScrollView(
           slivers: [
-            // ── Gradient header ───────────────────────────────────────────
-            SliverToBoxAdapter(child: _buildHeader(u)),
+            // ── Animated gradient header ──────────────────────────────────
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _headerFade,
+                child: _buildHeader(u),
+              ),
+            ),
 
             // ── Incomplete profile nudge ──────────────────────────────────
             if (u == null || u.name.trim().isEmpty)
               SliverToBoxAdapter(
-                child: _CompleteProfileBanner(onTap: () =>
-                    Get.to(() => const ProfileDetailsPage())),
+                child: _CompleteProfileBanner(
+                    onTap: () => Get.to(() => const ProfileDetailsPage())),
               ),
 
-            // ── Quick stats row ───────────────────────────────────────────
-            if (u != null)
-              SliverToBoxAdapter(child: _buildStatsRow(u)),
-
-            // ── Dashboard grid ────────────────────────────────────────────
+            // ── Content (animated slide + fade) ───────────────────────────
             SliverToBoxAdapter(
-              child: _Section(
-                title: 'Dashboard',
-                child: _buildDashboardGrid(),
-              ),
-            ),
+              child: FadeTransition(
+                opacity: _contentFade,
+                child: SlideTransition(
+                  position: _contentSlide,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 4 booking stat cards
+                      _buildStatsCards(),
 
-            // ── Account info ──────────────────────────────────────────────
-            if (u != null)
-              SliverToBoxAdapter(
-                child: _Section(
-                  title: 'Account',
-                  child: _buildAccountInfo(u),
+                      // Menu
+                      const _SectionLabel('Account'),
+                      _buildAccountMenu(u),
+
+                      const _SectionLabel('More'),
+                      _buildMoreMenu(),
+
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
-
-            // ── Settings ──────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: _Section(
-                title: 'Settings',
-                child: _buildSettings(),
-              ),
             ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         );
       }),
     );
   }
 
-  // ── Header ────────────────────────────────────────────────────────────────
+  // ── HEADER ─────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(UserDetail? u) {
     final name = u?.name ?? '';
     final phone = u?.phoneNumber ?? '';
+    final email = u?.email ?? '';
     final imageUrl = u?.profileImage ?? '';
     final address = _buildAddressLine(u);
+    final initial = name.trim().isNotEmpty
+        ? name.trim().split(' ').map((w) => w[0].toUpperCase()).take(2).join()
+        : (phone.length >= 4 ? phone.substring(phone.length - 4) : '?');
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1A56DB), Color(0xFF6BC4FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Stack(
+      children: [
+        // Gradient background with curved bottom
+        ClipPath(
+          clipper: _CurveClipper(),
+          child: Container(
+            height: 260,
+            decoration: const BoxDecoration(gradient: kPrimaryGradient),
+          ),
         ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          child: Column(
-            children: [
-              // Top row: title + edit button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'My Profile',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  GestureDetector(
-                    onTap: () => Get.to(() => const ProfileDetailsPage()),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.4)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.edit_outlined,
-                              color: Colors.white, size: 14),
-                          SizedBox(width: 5),
-                          Text('Edit',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
 
-              // Avatar + name
-              Row(
-                children: [
-                  // Avatar
-                  _Avatar(imageUrl: imageUrl, name: name),
-                  const SizedBox(width: 18),
-                  // Name & details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name.isNotEmpty ? name : 'Set up your profile',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: name.isNotEmpty ? 20 : 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        if (phone.isNotEmpty)
-                          Row(children: [
-                            const Icon(Icons.phone,
-                                color: Colors.white70, size: 13),
-                            const SizedBox(width: 4),
-                            Text(phone,
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 13)),
-                          ]),
-                        if (address.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on,
-                                  color: Colors.white60, size: 13),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(address,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: Colors.white60, fontSize: 12)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
+        // Decorative circles
+        Positioned(
+          right: -40, top: -30,
+          child: Container(
+            width: 180, height: 180,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: kPrimaryLight.withValues(alpha: 0.12),
+            ),
+          ),
+        ),
+        Positioned(
+          left: -20, top: 120,
+          child: Container(
+            width: 100, height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: kAccent.withValues(alpha: 0.08),
+            ),
+          ),
+        ),
+
+        // Content
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
+            child: Column(
+              children: [
+                // Top bar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('My Profile',
+                        style: TextStyle(
+                            color: kSurface,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold)),
+                    _EditButton(),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Avatar + info
+                Row(
+                  children: [
+                    // Animated avatar
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.6, end: 1.0),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.elasticOut,
+                      builder: (_, scale, child) =>
+                          Transform.scale(scale: scale, child: child),
+                      child: _Avatar(imageUrl: imageUrl, initial: initial),
                     ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name.isNotEmpty ? name : 'Set up your profile',
+                            style: TextStyle(
+                                color: kSurface,
+                                fontSize: name.isNotEmpty ? 20 : 16,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2),
+                          ),
+                          const SizedBox(height: 6),
+                          if (phone.isNotEmpty)
+                            _HeaderDetail(Icons.phone_rounded, phone),
+                          if (email.isNotEmpty)
+                            _HeaderDetail(Icons.email_outlined, email),
+                          if (address.isNotEmpty)
+                            _HeaderDetail(Icons.location_on_outlined, address),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── STATS CARDS ────────────────────────────────────────────────────────────
+
+  Widget _buildStatsCards() {
+    final bCtrl = Get.isRegistered<BookingController>()
+        ? Get.find<BookingController>()
+        : null;
+
+    return Obx(() {
+      final total     = bCtrl?.bookings.length           ?? 0;
+      final active    = bCtrl?.activeBookings.length     ?? 0;
+      final completed = bCtrl?.completedBookings.length  ?? 0;
+      final cancelled = bCtrl?.cancelledBookings.length  ?? 0;
+
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Row(
+          children: [
+            _StatCard('Total', '$total',
+                Icons.receipt_long_rounded, kPrimary),
+            _StatCard('Active', '$active',
+                Icons.pending_actions_rounded, kWarning),
+            _StatCard('Done', '$completed',
+                Icons.check_circle_rounded, kSuccess),
+            _StatCard('Cancelled', '$cancelled',
+                Icons.cancel_rounded, kError),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ── ACCOUNT MENU ───────────────────────────────────────────────────────────
+
+  Widget _buildAccountMenu(UserDetail? u) {
+    final nCtrl = Get.isRegistered<NotificationController>()
+        ? Get.find<NotificationController>()
+        : null;
+
+    return _MenuCard(items: [
+      _MenuItem(
+        icon: Icons.person_outline_rounded,
+        label: 'Edit Profile',
+        color: kPrimary,
+        onTap: () => Get.to(() => const ProfileDetailsPage()),
+      ),
+      _MenuItem(
+        icon: Icons.calendar_today_rounded,
+        label: 'My Appointments',
+        color: kTeal,
+        onTap: () => Get.to(() => const AppointmentsPage()),
+      ),
+      _MenuItem(
+        icon: Icons.chat_bubble_outline_rounded,
+        label: 'Chat History',
+        color: kSuccess,
+        onTap: () => Get.to(() => const ChatListPage()),
+      ),
+      _MenuItem(
+        icon: Icons.notifications_outlined,
+        label: 'Notifications',
+        color: kWarning,
+        badge: nCtrl != null
+            ? Obx(() {
+                final c = nCtrl.unreadCount;
+                return c > 0 ? _Badge('$c') : const SizedBox.shrink();
+              })
+            : null,
+        onTap: () => Get.to(() => const NotificationsPage()),
+      ),
+      _MenuItem(
+        icon: Icons.folder_outlined,
+        label: 'Medical Records',
+        color: kOrange,
+        onTap: () => Get.to(() => const RecordsPage()),
+      ),
+      _MenuItem(
+        icon: Icons.family_restroom_rounded,
+        label: 'Family Report',
+        color: kPink,
+        onTap: () => Get.to(() => FamilyReportsPage()),
+      ),
+      _MenuItem(
+        icon: Icons.credit_card_outlined,
+        label: 'Payments',
+        color: kPrimary,
+        onTap: () => Get.to(() => const PaymentsPage()),
+      ),
+      _MenuItem(
+        icon: Icons.account_balance_wallet_outlined,
+        label: 'Wallet',
+        color: kAmber,
+        onTap: () => Get.to(() => const WalletPage()),
+      ),
+    ]);
+  }
+
+  Widget _buildMoreMenu() {
+    return _MenuCard(items: [
+      _MenuItem(
+        icon: Icons.lock_outline_rounded,
+        label: 'Privacy & Security',
+        color: kSuccess,
+        onTap: () => Get.to(() => const PrivacySecurityPage()),
+      ),
+      _MenuItem(
+        icon: Icons.help_outline_rounded,
+        label: 'Help & Support',
+        color: kTeal,
+        onTap: () => Get.to(() => const HelpSupportPage()),
+      ),
+      _MenuItem(
+        icon: Icons.logout_rounded,
+        label: 'Log Out',
+        color: kError,
+        onTap: _logout,
+        isDanger: true,
+      ),
+    ]);
+  }
+
+  // ── SKELETON LOADER ────────────────────────────────────────────────────────
+
+  Widget _buildSkeleton() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Header skeleton
+          Stack(
+            children: [
+              ClipPath(
+                clipper: _CurveClipper(),
+                child: Container(
+                    height: 260,
+                    decoration:
+                        const BoxDecoration(gradient: kPrimaryGradientV)),
+              ),
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Shimmer(width: 100, height: 20,
+                          radius: 6, baseColor: kPrimaryMid,
+                          highlightColor: kPrimary),
+                      const SizedBox(height: 24),
+                      Row(children: [
+                        _Shimmer(width: 80, height: 80,
+                            radius: 40, baseColor: kPrimaryMid,
+                            highlightColor: kPrimary),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _Shimmer(width: 140, height: 18,
+                                radius: 6, baseColor: kPrimaryMid,
+                                highlightColor: kPrimary),
+                            const SizedBox(height: 8),
+                            _Shimmer(width: 110, height: 12,
+                                radius: 4, baseColor: kPrimaryMid,
+                                highlightColor: kPrimary),
+                            const SizedBox(height: 6),
+                            _Shimmer(width: 130, height: 12,
+                                radius: 4, baseColor: kPrimaryMid,
+                                highlightColor: kPrimary),
+                          ],
+                        ),
+                      ]),
+                    ],
                   ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  // ── Stats row (blood group, role, status) ─────────────────────────────────
-
-  Widget _buildStatsRow(UserDetail u) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        children: [
-          _StatCell(
-            label: 'Blood Group',
-            value: u.bloodGroup.isNotEmpty ? u.bloodGroup : '—',
-            icon: Icons.water_drop,
-            color: Colors.red.shade400,
+          // Stat card skeletons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: List.generate(
+                  4, (_) => Expanded(child: _Shimmer(
+                      height: 80, radius: 14,
+                      margin: const EdgeInsets.symmetric(horizontal: 4)))),
+            ),
           ),
-          _divider(),
-          _StatCell(
-            label: 'Gender',
-            value: _shortGender(u.gender),
-            icon: Icons.person,
-            color: const Color(0xFF1A56DB),
-          ),
-          _divider(),
-          _StatCell(
-            label: 'Status',
-            value: u.status,
-            icon: Icons.circle,
-            color: u.status == 'ACTIVE'
-                ? Colors.green.shade500
-                : Colors.orange.shade500,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() => Container(
-      width: 1, height: 40, color: Colors.grey.shade200);
-
-  String _shortGender(String g) {
-    if (g == 'MALE') return 'Male';
-    if (g == 'FEMALE') return 'Female';
-    if (g == 'OTHER') return 'Other';
-    return '—';
-  }
-
-  // ── Dashboard grid ────────────────────────────────────────────────────────
-
-  Widget _buildDashboardGrid() {
-    final items = [
-      _GridItem('Appointments', Icons.calendar_today, const Color(0xFF1A56DB),
-          () => Get.to(() => const AppointmentsPage())),
-      _GridItem('Booking History', Icons.history_rounded, const Color(0xFF0EA5E9),
-          () => Get.to(() => const BookingHistoryPage())),
-      _GridItem('Records', Icons.folder_outlined, const Color(0xFF10B981),
-          () => Get.to(() => const RecordsPage())),
-      _GridItem('Family Report', Icons.family_restroom, const Color(0xFF8B5CF6),
-          () => Get.to(() => FamilyReportsPage())),
-      _GridItem('Payments', Icons.credit_card_outlined, const Color(0xFFEF4444),
-          () => Get.to(() => const PaymentsPage())),
-      _GridItem('Wallet', Icons.account_balance_wallet_outlined,
-          const Color(0xFFF59E0B), () => Get.to(() => const WalletPage())),
-      _GridItem('Help & Support', Icons.headset_mic_outlined,
-          const Color(0xFF06B6D4), () => Get.to(() => const HelpSupportPage())),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 0.95,
-        ),
-        itemCount: items.length,
-        itemBuilder: (_, i) {
-          final item = items[i];
-          return GestureDetector(
-            onTap: item.onTap,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2)),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: item.color.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
+          // Menu skeletons
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            decoration: BoxDecoration(
+                color: kSurface, borderRadius: BorderRadius.circular(16)),
+            child: Column(
+              children: List.generate(
+                5,
+                (i) => Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      child: Row(children: [
+                        _Shimmer(width: 38, height: 38, radius: 10),
+                        const SizedBox(width: 12),
+                        _Shimmer(width: 140, height: 14, radius: 6),
+                      ]),
                     ),
-                    child: Icon(item.icon, color: item.color, size: 22),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item.label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1F36)),
-                  ),
-                ],
+                    if (i < 4)
+                      Divider(height: 1, indent: 66, color: kDivider),
+                  ],
+                ),
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  // ── Account info ──────────────────────────────────────────────────────────
-
-  Widget _buildAccountInfo(UserDetail u) {
-    return Column(
-      children: [
-        _InfoRow(
-            icon: Icons.verified_user_outlined,
-            label: 'Role',
-            value: u.role,
-            color: const Color(0xFF1A56DB)),
-        _InfoRow(
-            icon: Icons.card_membership_outlined,
-            label: 'Plan',
-            value: u.userService,
-            color: const Color(0xFF8B5CF6)),
-        _InfoRow(
-            icon: Icons.security_outlined,
-            label: 'Account',
-            value: u.blockStatus,
-            color: u.blockStatus == 'UNBLOCKED'
-                ? Colors.green
-                : Colors.red),
-      ],
-    );
-  }
-
-  // ── Settings ──────────────────────────────────────────────────────────────
-
-  Widget _buildSettings() {
-    return Column(
-      children: [
-        _SettingsRow(
-          icon: Icons.person_outline,
-          label: 'Edit Profile',
-          color: const Color(0xFF1A56DB),
-          onTap: () => Get.to(() => const ProfileDetailsPage()),
-        ),
-        _SettingsRow(
-          icon: Icons.notifications_outlined,
-          label: 'Notifications',
-          color: const Color(0xFFF59E0B),
-          onTap: () => Get.to(() => const NotificationsPage()),
-        ),
-        _SettingsRow(
-          icon: Icons.lock_outline,
-          label: 'Privacy & Security',
-          color: const Color(0xFF10B981),
-          onTap: () => Get.to(() => const PrivacySecurityPage()),
-        ),
-        _SettingsRow(
-          icon: Icons.help_outline,
-          label: 'Help & Support',
-          color: const Color(0xFF06B6D4),
-          onTap: () => Get.to(() => const HelpSupportPage()),
-        ),
-        _SettingsRow(
-          icon: Icons.logout,
-          label: 'Log Out',
-          color: Colors.red,
-          onTap: _logout,
-          isDestructive: true,
-        ),
-      ],
-    );
-  }
-
-  Future<void> _logout() async {
-    final confirm = await Get.dialog<bool>(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Log Out'),
-        content:
-            const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back(result: false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
-            onPressed: () => Get.back(result: true),
-            child: const Text('Log Out'),
           ),
         ],
       ),
     );
-    if (confirm == true) {
-      await AuthRepository().logout();
-      Get.offAllNamed('/enterPhoneNumberPage');
-    }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── HELPERS ────────────────────────────────────────────────────────────────
 
   String _buildAddressLine(UserDetail? u) {
     if (u?.address1 == null) return '';
@@ -438,14 +463,60 @@ class Profile extends StatelessWidget {
         .where((s) => s.isNotEmpty)
         .join(', ');
   }
+
+  Future<void> _logout() async {
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kError,
+                foregroundColor: kSurface,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8))),
+            onPressed: () => Get.back(result: true),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await AuthRepository().logout();
+      Get.offAllNamed('/enterPhoneNumberPage');
+    }
+  }
+}
+
+// ── Curve clipper ─────────────────────────────────────────────────────────────
+
+class _CurveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    path.quadraticBezierTo(
+        size.width / 2, size.height, size.width, size.height - 40);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_) => false;
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
 class _Avatar extends StatelessWidget {
   final String imageUrl;
-  final String name;
-  const _Avatar({required this.imageUrl, required this.name});
+  final String initial;
+  const _Avatar({required this.imageUrl, required this.initial});
 
   @override
   Widget build(BuildContext context) {
@@ -457,26 +528,28 @@ class _Avatar extends StatelessWidget {
       img = NetworkImage(full);
     }
 
-    final initials = name.trim().isNotEmpty
-        ? name.trim().split(' ').map((w) => w[0].toUpperCase()).take(2).join()
-        : '?';
-
     return Container(
-      width: 80,
-      height: 80,
+      width: 84,
+      height: 84,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-        color: Colors.white.withValues(alpha: 0.2),
+        border: Border.all(color: kSurface, width: 3),
+        gradient: img == null ? kPrimaryGradient : null,
         image: img != null
             ? DecorationImage(image: img, fit: BoxFit.cover)
             : null,
+        boxShadow: [
+          BoxShadow(
+              color: kPrimaryDark.withValues(alpha: 0.35),
+              blurRadius: 14,
+              offset: const Offset(0, 6))
+        ],
       ),
       child: img == null
           ? Center(
-              child: Text(initials,
+              child: Text(initial,
                   style: const TextStyle(
-                      color: Colors.white,
+                      color: kSurface,
                       fontSize: 26,
                       fontWeight: FontWeight.bold)))
           : null,
@@ -484,182 +557,250 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-// ── Stat cell ─────────────────────────────────────────────────────────────────
+// ── Header detail row ─────────────────────────────────────────────────────────
 
-class _StatCell extends StatelessWidget {
-  final String label;
-  final String value;
+class _HeaderDetail extends StatelessWidget {
   final IconData icon;
-  final Color color;
-  const _StatCell(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(height: 4),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
-          const SizedBox(height: 2),
-          Text(label,
-              style:
-                  TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Grid item model ───────────────────────────────────────────────────────────
-
-class _GridItem {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  _GridItem(this.label, this.icon, this.color, this.onTap);
-}
-
-// ── Section wrapper ───────────────────────────────────────────────────────────
-
-class _Section extends StatelessWidget {
-  final String title;
-  final Widget child;
-  const _Section({required this.title, required this.child});
+  final String text;
+  const _HeaderDetail(this.icon, this.text);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1F36))),
-          const SizedBox(height: 10),
-          child,
-        ],
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(children: [
+        Icon(icon, color: kSurface.withValues(alpha: 0.75), size: 13),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: kSurface.withValues(alpha: 0.85), fontSize: 12)),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Edit button ───────────────────────────────────────────────────────────────
+
+class _EditButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Get.to(() => const ProfileDetailsPage()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: kSurface.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: kSurface.withValues(alpha: 0.4)),
+        ),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.edit_outlined, color: kSurface, size: 14),
+          SizedBox(width: 5),
+          Text('Edit',
+              style: TextStyle(
+                  color: kSurface, fontSize: 13, fontWeight: FontWeight.w600)),
+        ]),
       ),
     );
   }
 }
 
-// ── Info row ──────────────────────────────────────────────────────────────────
+// ── Stat card ─────────────────────────────────────────────────────────────────
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
+class _StatCard extends StatelessWidget {
   final String label;
   final String value;
+  final IconData icon;
   final Color color;
-  const _InfoRow(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      required this.color});
+  const _StatCard(this.label, this.value, this.icon, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: kSurface,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+                color: color.withValues(alpha: 0.12),
+                blurRadius: 10,
+                offset: const Offset(0, 3))
+          ],
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 6),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: color)),
+          const SizedBox(height: 2),
+          Text(label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w500,
+                  color: kTextLight)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Section label ─────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+      child: Text(text.toUpperCase(),
+          style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: kTextLight,
+              letterSpacing: 0.8)),
+    );
+  }
+}
+
+// ── Menu card (wraps multiple items) ──────────────────────────────────────────
+
+class _MenuCard extends StatelessWidget {
+  final List<_MenuItem> items;
+  const _MenuCard({required this.items});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: kSurface,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2)),
+              color: kTextDark.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2))
         ],
       ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 12),
-          Text(label,
-              style:
-                  TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-          const Spacer(),
-          Text(value,
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: color)),
-        ],
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        children: List.generate(items.length, (i) {
+          return Column(
+            children: [
+              items[i],
+              if (i < items.length - 1)
+                Divider(height: 1, indent: 60, color: kDivider),
+            ],
+          );
+        }),
       ),
     );
   }
 }
 
-// ── Settings row ──────────────────────────────────────────────────────────────
+// ── Menu item ─────────────────────────────────────────────────────────────────
 
-class _SettingsRow extends StatelessWidget {
+class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
-  final bool isDestructive;
-  const _SettingsRow(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap,
-      this.isDestructive = false});
+  final bool isDanger;
+  final Widget? badge;
+
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.isDanger = false,
+    this.badge,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2)),
-        ],
-      ),
-      child: ListTile(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         onTap: onTap,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: color, size: 18),
+        splashColor: color.withValues(alpha: 0.08),
+        highlightColor: color.withValues(alpha: 0.04),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(children: [
+            // Icon container
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                  color: isDanger
+                      ? kError.withValues(alpha: 0.08)
+                      : color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon,
+                  color: isDanger ? kError : color, size: 19),
+            ),
+            const SizedBox(width: 14),
+            // Label
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDanger ? kError : kTextDark)),
+            ),
+            // Badge (e.g. notification count)
+            if (badge != null) ...[badge!, const SizedBox(width: 6)],
+            // Arrow
+            if (!isDanger)
+              const Icon(Icons.arrow_forward_ios_rounded,
+                  size: 13, color: kTextLight),
+          ]),
         ),
-        title: Text(label,
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color:
-                    isDestructive ? Colors.red : const Color(0xFF1A1F36))),
-        trailing: isDestructive
-            ? null
-            : Icon(Icons.arrow_forward_ios,
-                size: 14, color: Colors.grey.shade400),
       ),
     );
   }
 }
 
-// ── Complete profile banner ───────────────────────────────────────────────────
+// ── Notification badge ────────────────────────────────────────────────────────
+
+class _Badge extends StatelessWidget {
+  final String text;
+  const _Badge(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+          color: kError, borderRadius: BorderRadius.circular(10)),
+      child: Text(text,
+          style: const TextStyle(
+              color: kSurface, fontSize: 10, fontWeight: FontWeight.bold)),
+    );
+  }
+}
+
+// ── Complete profile banner ────────────────────────────────────────────────────
 
 class _CompleteProfileBanner extends StatelessWidget {
   final VoidCallback onTap;
@@ -670,36 +811,93 @@ class _CompleteProfileBanner extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.amber.shade50,
+          color: kAmber.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.amber.shade300),
+          border: Border.all(color: kAmber.withValues(alpha: 0.4)),
         ),
-        child: Row(
-          children: [
-            Icon(Icons.info_outline,
-                color: Colors.amber.shade700, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Complete your profile',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber.shade800,
-                          fontSize: 13)),
-                  Text('Add your name, blood group and address',
-                      style: TextStyle(
-                          color: Colors.amber.shade700, fontSize: 12)),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios,
-                size: 14, color: Colors.amber.shade700),
-          ],
+        child: Row(children: [
+          Icon(Icons.info_outline_rounded,
+              color: kAmber, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Complete your profile',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: kTextDark,
+                      fontSize: 13)),
+              const Text('Add your name, photo and address',
+                  style: TextStyle(color: kTextMedium, fontSize: 12)),
+            ]),
+          ),
+          Icon(Icons.arrow_forward_ios_rounded,
+              size: 14, color: kAmber),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Shimmer skeleton ──────────────────────────────────────────────────────────
+
+class _Shimmer extends StatefulWidget {
+  final double? width;
+  final double height;
+  final double radius;
+  final EdgeInsetsGeometry? margin;
+  final Color? baseColor;
+  final Color? highlightColor;
+
+  const _Shimmer({
+    this.width,
+    required this.height,
+    this.radius = 8,
+    this.margin,
+    this.baseColor,
+    this.highlightColor,
+  });
+
+  @override
+  State<_Shimmer> createState() => _ShimmerState();
+}
+
+class _ShimmerState extends State<_Shimmer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<Color?> _color;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
+    _color = ColorTween(
+      begin: widget.baseColor ?? kBorder,
+      end: widget.highlightColor ?? kDivider,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _color,
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        margin: widget.margin,
+        decoration: BoxDecoration(
+          color: _color.value,
+          borderRadius: BorderRadius.circular(widget.radius),
         ),
       ),
     );

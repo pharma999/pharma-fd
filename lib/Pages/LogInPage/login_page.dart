@@ -34,8 +34,12 @@ class _LogInPageState extends State<LogInPage> {
 
   @override
   void dispose() {
-    for (final c in otpControllers) c.dispose();
-    for (final f in otpFocusNodes) f.dispose();
+    for (final c in otpControllers) {
+      c.dispose();
+    }
+    for (final f in otpFocusNodes) {
+      f.dispose();
+    }
     _resendTimer?.cancel();
     super.dispose();
   }
@@ -300,7 +304,9 @@ class _LogInPageState extends State<LogInPage> {
                               isPhoneInput = true;
                               _error = '';
                               _devHint = '';
-                              for (final c in otpControllers) c.clear();
+                              for (final c in otpControllers) {
+                                c.clear();
+                              }
                             });
                           },
                   ),

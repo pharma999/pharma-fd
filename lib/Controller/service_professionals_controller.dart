@@ -236,7 +236,9 @@ class ServiceProfessionalsController extends GetxController
     fetchAll();
   }
 
-  /// Filter professionals by a specific service name and optional zone.
+  /// Filter professionals by a specific service.
+  /// Sends both service_id (exact) and service_name (fuzzy fallback)
+  /// so the backend can do the most accurate match available.
   Future<void> selectService(String serviceId, String label, {String? zoneId}) async {
     selectedCategoryId.value = serviceId;
     selectedCategoryName.value = label;
@@ -244,8 +246,11 @@ class ServiceProfessionalsController extends GetxController
     try {
       isLoading.value = true;
       error.value = '';
-      final result = await _repo.getProfessionals(label,
-          zoneId: zoneId ?? (selectedZoneId.value.isEmpty ? null : selectedZoneId.value));
+      final result = await _repo.getProfessionals(
+        label,
+        serviceId: serviceId.isNotEmpty ? serviceId : null,
+        zoneId: zoneId ?? (selectedZoneId.value.isEmpty ? null : selectedZoneId.value),
+      );
       result.when(
         onSuccess: (data) => professionals.value = data,
         onError: (err) => error.value = err,

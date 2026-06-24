@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Config/colors_coning.dart';
+import 'package:home_care/Controller/chatbot_controller.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -9,232 +11,341 @@ class ChatbotPage extends StatefulWidget {
 }
 
 class _ChatbotPageState extends State<ChatbotPage> {
-  final TextEditingController _messageController = TextEditingController();
-  final List<ChatMessage> _messages = [
-    ChatMessage(
-      text: "Hello! 👋 How can I assist you today?",
-      isBot: true,
-      timestamp: DateTime.now(),
-    ),
-  ];
+  late final ChatbotController _ctrl;
+  final TextEditingController _inputCtrl = TextEditingController();
+  final ScrollController _scrollCtrl = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = Get.put(ChatbotController());
+    // Auto-scroll when new messages arrive
+    ever(_ctrl.messages, (_) => _scrollToBottom());
+  }
 
   @override
   void dispose() {
-    _messageController.dispose();
+    _inputCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
-  void _sendMessage() {
-    if (_messageController.text.isEmpty) return;
-
-    final userMessage = ChatMessage(
-      text: _messageController.text,
-      isBot: false,
-      timestamp: DateTime.now(),
-    );
-
-    setState(() {
-      _messages.add(userMessage);
-    });
-
-    _messageController.clear();
-
-    // Simulate bot response
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              text: "I'm here to help! 😊 Is there anything else you need?",
-              isBot: true,
-              timestamp: DateTime.now(),
-            ),
-          );
-        });
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
+  }
+
+  void _send() {
+    final text = _inputCtrl.text.trim();
+    if (text.isEmpty) return;
+    _inputCtrl.clear();
+    _ctrl.sendMessage(text);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back, color: Colors.grey),
-        ),
-        title: const Text(
-          "Healthcare Assistant",
-          style: TextStyle(
-            fontFamily: "Poppins",
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF6BC4FF), Color(0xFFE3F2FD)],
-            ),
-          ),
-        ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
-        ),
-      ),
+      backgroundColor: const Color(0xFFF0F4FF),
+      appBar: _buildAppBar(),
       body: Column(
         children: [
-          // Messages Display
-          Expanded(
-            child: ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[_messages.length - 1 - index];
-                return ChatBubble(message: message);
-              },
-            ),
-          ),
+          // Message list
+          Expanded(child: _buildMessageList()),
 
-          // Message Input
+          // Suggestions
+          Obx(() {
+            if (_ctrl.suggestions.isEmpty) return const SizedBox.shrink();
+            return _buildSuggestions();
+          }),
+
+          // Input row
+          _buildInputBar(),
+        ],
+      ),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      elevation: 0,
+      centerTitle: false,
+      backgroundColor: kPrimary,
+      leading: IconButton(
+        onPressed: () => Get.back(),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded,
+            color: Colors.white, size: 20),
+      ),
+      title: Row(
+        children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: "Type your message...",
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF00BCD4),
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          Icons.attach_file,
-                          color: Colors.grey.shade400,
-                        ),
-                        onPressed: () {},
-                      ),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _sendMessage,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF00BCD4), Color(0xFF0097A7)],
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.send,
+            child: const Icon(Icons.support_agent_rounded,
+                color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Healthcare Assistant',
+                  style: TextStyle(
                       color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15)),
+              Obx(() => Text(
+                    _ctrl.isSending.value ? 'Typing...' : 'Online',
+                    style: TextStyle(
+                        color: _ctrl.isSending.value
+                            ? Colors.white60
+                            : kAccent,
+                        fontSize: 11),
+                  )),
+            ],
+          ),
+        ],
+      ),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(0)),
+      ),
+    );
+  }
+
+  Widget _buildMessageList() {
+    return Obx(() {
+      final msgs = _ctrl.messages;
+      return ListView.builder(
+        controller: _scrollCtrl,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        itemCount: msgs.length,
+        itemBuilder: (_, i) => _ChatBubble(msg: msgs[i]),
+      );
+    });
+  }
+
+  Widget _buildSuggestions() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Obx(() => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _ctrl.suggestions
+                  .map((s) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () => _ctrl.useSuggestion(s),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: kPrimary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: kPrimary.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(s,
+                                style: const TextStyle(
+                                    color: kPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500)),
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          )),
+    );
+  }
+
+  Widget _buildInputBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, -2))
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F6FB),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: kBorder),
+              ),
+              child: TextField(
+                controller: _inputCtrl,
+                onSubmitted: (_) => _send(),
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Ask me anything…',
+                  hintStyle:
+                      TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: 12),
                 ),
-              ],
+              ),
             ),
           ),
+          const SizedBox(width: 8),
+          Obx(() => GestureDetector(
+                onTap: _ctrl.isSending.value ? null : _send,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: _ctrl.isSending.value
+                          ? [Colors.grey.shade300, Colors.grey.shade400]
+                          : [kPrimary, kPrimaryDark],
+                    ),
+                    boxShadow: _ctrl.isSending.value
+                        ? []
+                        : [
+                            BoxShadow(
+                                color: kPrimary.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3))
+                          ],
+                  ),
+                  child: _ctrl.isSending.value
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.send_rounded,
+                          color: Colors.white, size: 20),
+                ),
+              )),
         ],
       ),
     );
   }
 }
 
-class ChatMessage {
-  final String text;
-  final bool isBot;
-  final DateTime timestamp;
+// ── Chat bubble ───────────────────────────────────────────────────────────────
 
-  ChatMessage({
-    required this.text,
-    required this.isBot,
-    required this.timestamp,
-  });
-}
-
-class ChatBubble extends StatelessWidget {
-  final ChatMessage message;
-
-  const ChatBubble({super.key, required this.message});
+class _ChatBubble extends StatelessWidget {
+  final ChatMessageUI msg;
+  const _ChatBubble({required this.msg});
 
   @override
   Widget build(BuildContext context) {
+    final isBot = msg.isBot;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Align(
-        alignment: message.isBot ? Alignment.centerLeft : Alignment.centerRight,
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.75,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: message.isBot
-                ? Colors.grey.shade200
-                : const Color(0xFF00BCD4),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: message.isBot
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.end,
-            children: [
-              Text(
-                message.text,
-                style: TextStyle(
-                  color: message.isBot ? Colors.black87 : Colors.white,
-                  fontSize: 15,
-                ),
+      padding: EdgeInsets.only(
+        top: 6,
+        bottom: 6,
+        left: isBot ? 0 : 48,
+        right: isBot ? 48 : 0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment:
+            isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
+        children: [
+          if (isBot) ...[
+            Container(
+              width: 32,
+              height: 32,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                    colors: [kPrimary, kPrimaryMid]),
+                boxShadow: [
+                  BoxShadow(
+                      color: kPrimary.withValues(alpha: 0.3),
+                      blurRadius: 6)
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                "${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}",
-                style: TextStyle(
-                  color: message.isBot ? Colors.grey.shade600 : Colors.white70,
-                  fontSize: 11,
+              child: const Icon(Icons.support_agent_rounded,
+                  color: Colors.white, size: 18),
+            ),
+          ],
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isBot
+                    ? Colors.white
+                    : (msg.isError
+                        ? kError.withValues(alpha: 0.1)
+                        : kPrimary),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: Radius.circular(isBot ? 4 : 18),
+                  bottomRight: Radius.circular(isBot ? 18 : 4),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ],
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: isBot
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    msg.text,
+                    style: TextStyle(
+                      color: isBot
+                          ? (msg.isError ? kError : kTextDark)
+                          : Colors.white,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatTime(msg.timestamp),
+                    style: TextStyle(
+                      color: isBot
+                          ? kTextLight
+                          : Colors.white.withValues(alpha: 0.7),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  String _formatTime(DateTime dt) {
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final m = dt.minute.toString().padLeft(2, '0');
+    final ampm = dt.hour < 12 ? 'AM' : 'PM';
+    return '$h:$m $ampm';
   }
 }

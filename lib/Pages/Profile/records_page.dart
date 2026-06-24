@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:home_care/Api/Config/api_config.dart';
+import 'package:home_care/Config/colors_coning.dart';
 import 'package:home_care/Controller/family_report_controller.dart';
 import 'package:home_care/Model/medical_record_model.dart';
 
@@ -26,12 +27,12 @@ class _RecordsView extends StatelessWidget {
   final FamilyReportController ctrl;
   const _RecordsView({required this.ctrl});
 
-  static const _green = Color(0xFF10B981);
+  // theme: kSuccess
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: kBackground,
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
@@ -39,7 +40,7 @@ class _RecordsView extends StatelessWidget {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF10B981), Color(0xFF6BC4FF)],
+              colors: [kSuccess, kPrimaryLight],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -51,35 +52,35 @@ class _RecordsView extends StatelessWidget {
         ),
         leading: IconButton(
           onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kSurface, size: 20),
         ),
         title: const Text('My Medical Records',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(color: kSurface, fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: kSurface),
             onPressed: ctrl.loadMedicalRecords,
           ),
         ],
       ),
       floatingActionButton: Obx(() => FloatingActionButton.extended(
-        backgroundColor: _green,
+        backgroundColor: kSuccess,
         onPressed: ctrl.isUploading.value ? null : () => _showUploadSheet(context),
         icon: ctrl.isUploading.value
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : const Icon(Icons.upload_file, color: Colors.white),
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kSurface, strokeWidth: 2))
+            : const Icon(Icons.upload_file, color: kSurface),
         label: Text(ctrl.isUploading.value ? 'Uploading…' : 'Upload Report',
-            style: const TextStyle(color: Colors.white)),
+            style: const TextStyle(color: kSurface)),
       )),
       body: Obx(() {
         if (ctrl.isLoadingRecords.value && ctrl.medicalRecords.isEmpty) {
-          return const Center(child: CircularProgressIndicator(color: _green));
+          return const Center(child: CircularProgressIndicator(color: kSuccess));
         }
         if (ctrl.medicalRecords.isEmpty) {
           return _EmptyState(onUpload: () => _showUploadSheet(context));
         }
         return RefreshIndicator(
-          color: _green,
+          color: kSuccess,
           onRefresh: ctrl.loadMedicalRecords,
           child: ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -109,11 +110,11 @@ class _RecordCard extends StatelessWidget {
   const _RecordCard({required this.record, required this.ctrl});
 
   static const _typeColors = <String, Color>{
-    'LAB_REPORT': Color(0xFF3B82F6),
-    'PRESCRIPTION': Color(0xFF10B981),
-    'XRAY': Color(0xFFF59E0B),
-    'ECG': Color(0xFFEF4444),
-    'OTHER': Color(0xFF6B7280),
+    'LAB_REPORT': kPrimary,
+    'PRESCRIPTION': kSuccess,
+    'XRAY': kWarning,
+    'ECG': kError,
+    'OTHER': kTextMedium,
   };
 
   static const _typeIcons = <String, IconData>{
@@ -133,7 +134,7 @@ class _RecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _typeColors[record.recordType] ?? const Color(0xFF6B7280);
+    final color = _typeColors[record.recordType] ?? kTextMedium;
     final icon = _typeIcons[record.recordType] ?? Icons.description_outlined;
     final hasFile = record.fileUrl.isNotEmpty;
 
@@ -142,9 +143,9 @@ class _RecordCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kSurface,
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 3))],
+          boxShadow: [BoxShadow(color: kTextDark.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +173,7 @@ class _RecordCard extends StatelessWidget {
                             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 2),
                         Text(record.recordDate,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                            style: TextStyle(fontSize: 12, color: kTextMedium)),
                       ],
                     ),
                   ),
@@ -195,18 +196,18 @@ class _RecordCard extends StatelessWidget {
                 child: Row(
                   children: [
                     if (record.doctorName.isNotEmpty) ...[
-                      Icon(Icons.person_outline, size: 13, color: Colors.grey.shade400),
+                      Icon(Icons.person_outline, size: 13, color: kTextLight),
                       const SizedBox(width: 4),
                       Text(record.doctorName,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          style: TextStyle(fontSize: 12, color: kTextMedium)),
                       const SizedBox(width: 12),
                     ],
                     if (record.hospitalName.isNotEmpty) ...[
-                      Icon(Icons.local_hospital_outlined, size: 13, color: Colors.grey.shade400),
+                      Icon(Icons.local_hospital_outlined, size: 13, color: kTextLight),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(record.hospitalName,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            style: TextStyle(fontSize: 12, color: kTextMedium),
                             overflow: TextOverflow.ellipsis),
                       ),
                     ],
@@ -217,7 +218,7 @@ class _RecordCard extends StatelessWidget {
             // ── Action bar (always visible) ───────────────────────────────
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: kBackground,
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
               ),
               child: Row(
@@ -225,28 +226,28 @@ class _RecordCard extends StatelessWidget {
                   _ActionBtn(
                     icon: Icons.open_in_new,
                     label: 'View',
-                    color: hasFile ? color : Colors.grey.shade400,
+                    color: hasFile ? color : kTextLight,
                     onTap: hasFile ? () => _openFile() : null,
                   ),
                   _vDivider(),
                   _ActionBtn(
                     icon: Icons.download_outlined,
                     label: 'Download',
-                    color: hasFile ? const Color(0xFF1A56DB) : Colors.grey.shade400,
+                    color: hasFile ? kPrimary : kTextLight,
                     onTap: hasFile ? () => _download() : null,
                   ),
                   _vDivider(),
                   _ActionBtn(
                     icon: Icons.share_outlined,
                     label: 'Share',
-                    color: hasFile ? const Color(0xFF8B5CF6) : Colors.grey.shade400,
+                    color: hasFile ? kPurple : kTextLight,
                     onTap: hasFile ? () => _share() : null,
                   ),
                   _vDivider(),
                   _ActionBtn(
                     icon: Icons.delete_outline,
                     label: 'Delete',
-                    color: Colors.red.shade400,
+                    color: kError,
                     onTap: () => _confirmDelete(context),
                   ),
                 ],
@@ -258,7 +259,7 @@ class _RecordCard extends StatelessWidget {
     );
   }
 
-  Widget _vDivider() => Container(width: 1, height: 36, color: Colors.grey.shade200);
+  Widget _vDivider() => Container(width: 1, height: 36, color: kBorder);
 
   void _showDetail(BuildContext context) {
     showModalBottomSheet(
@@ -285,7 +286,7 @@ class _RecordCard extends StatelessWidget {
       final savePath = '${dir.path}/$fileName';
       await Dio().download(url, savePath);
       Get.snackbar('Downloaded', 'Saved to documents', snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade50, colorText: Colors.green.shade700);
+          backgroundColor: kSuccess.withValues(alpha: 0.1), colorText: kSuccess);
     } catch (e) {
       Get.snackbar('Error', 'Download failed', snackPosition: SnackPosition.BOTTOM);
     }
@@ -310,7 +311,7 @@ class _RecordCard extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: kError, foregroundColor: kSurface),
             onPressed: () {
               Navigator.pop(context);
               ctrl.deleteRecord(record.recordId);
@@ -358,20 +359,20 @@ class _RecordDetailSheet extends StatelessWidget {
   const _RecordDetailSheet({required this.record});
 
   static const _typeColors = <String, Color>{
-    'LAB_REPORT': Color(0xFF3B82F6),
-    'PRESCRIPTION': Color(0xFF10B981),
-    'XRAY': Color(0xFFF59E0B),
-    'ECG': Color(0xFFEF4444),
-    'OTHER': Color(0xFF6B7280),
+    'LAB_REPORT': kPrimary,
+    'PRESCRIPTION': kSuccess,
+    'XRAY': kWarning,
+    'ECG': kError,
+    'OTHER': kTextMedium,
   };
 
   @override
   Widget build(BuildContext context) {
-    final color = _typeColors[record.recordType] ?? const Color(0xFF6B7280);
+    final color = _typeColors[record.recordType] ?? kTextMedium;
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: kSurface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.all(24),
@@ -382,7 +383,7 @@ class _RecordDetailSheet extends StatelessWidget {
           Center(
             child: Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: kBorder, borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 20),
@@ -439,10 +440,10 @@ class _Row extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 15, color: const Color(0xFF10B981)),
+        Icon(icon, size: 15, color: kSuccess),
         const SizedBox(width: 10),
         SizedBox(width: 72, child: Text(label,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500))),
+            style: TextStyle(fontSize: 13, color: kTextMedium))),
         Expanded(child: Text(value,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
       ]),
@@ -469,7 +470,7 @@ class _UploadSheetState extends State<_UploadSheet> {
   File? _file;
 
   static const _types = ['LAB_REPORT', 'PRESCRIPTION', 'XRAY', 'ECG', 'OTHER'];
-  static const _green = Color(0xFF10B981);
+  // theme: kSuccess
 
   @override
   void dispose() {
@@ -521,7 +522,7 @@ class _UploadSheetState extends State<_UploadSheet> {
     );
     if (ok) {
       Get.snackbar('Uploaded', 'Report saved successfully',
-          backgroundColor: Colors.green.shade50, colorText: Colors.green.shade700,
+          backgroundColor: kSuccess.withValues(alpha: 0.1), colorText: kSuccess,
           snackPosition: SnackPosition.BOTTOM);
     } else {
       Get.snackbar('Error',
@@ -534,7 +535,7 @@ class _UploadSheetState extends State<_UploadSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: kSurface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
@@ -564,7 +565,7 @@ class _UploadSheetState extends State<_UploadSheet> {
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: sel ? _green : Colors.grey.shade100,
+                        color: sel ? kSuccess : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(t.replaceAll('_', ' '),
@@ -579,19 +580,19 @@ class _UploadSheetState extends State<_UploadSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            _Field('Title *', _titleCtrl, accent: _green),
+            _Field('Title *', _titleCtrl, accent: kSuccess),
             const SizedBox(height: 10),
             GestureDetector(
               onTap: _pickDate,
               child: AbsorbPointer(
-                child: _Field('Record Date *', _dateCtrl, accent: _green,
+                child: _Field('Record Date *', _dateCtrl, accent: kSuccess,
                     suffix: const Icon(Icons.calendar_today, size: 16)),
               ),
             ),
             const SizedBox(height: 10),
-            _Field('Doctor Name', _doctorCtrl, accent: _green),
+            _Field('Doctor Name', _doctorCtrl, accent: kSuccess),
             const SizedBox(height: 10),
-            _Field('Hospital Name', _hospitalCtrl, accent: _green),
+            _Field('Hospital Name', _hospitalCtrl, accent: kSuccess),
             const SizedBox(height: 14),
             GestureDetector(
               onTap: _pickFile,
@@ -599,19 +600,19 @@ class _UploadSheetState extends State<_UploadSheet> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  border: Border.all(color: _green.withValues(alpha: 0.4), width: 1.5),
+                  border: Border.all(color: kSuccess.withValues(alpha: 0.4), width: 1.5),
                   borderRadius: BorderRadius.circular(12),
-                  color: _green.withValues(alpha: 0.04),
+                  color: kSuccess.withValues(alpha: 0.04),
                 ),
                 child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(_file != null ? Icons.check_circle : Icons.upload_file, color: _green),
+                  Icon(_file != null ? Icons.check_circle : Icons.upload_file, color: kSuccess),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       _file != null
                           ? _file!.path.split(Platform.pathSeparator).last
                           : 'Tap to select image',
-                      style: TextStyle(color: _file != null ? _green : Colors.grey.shade600, fontSize: 13),
+                      style: TextStyle(color: _file != null ? kSuccess : kTextMedium, fontSize: 13),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -624,8 +625,8 @@ class _UploadSheetState extends State<_UploadSheet> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _green,
-                  foregroundColor: Colors.white,
+                  backgroundColor: kSuccess,
+                  foregroundColor: kSurface,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _submit,
@@ -652,12 +653,12 @@ class _Field extends StatelessWidget {
       controller: ctrl,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+        hintStyle: TextStyle(color: kTextLight, fontSize: 13),
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: kBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -665,7 +666,7 @@ class _Field extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: kBorder),
         ),
       ),
     );
@@ -682,9 +683,9 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.folder_open_outlined, size: 72, color: Colors.grey.shade300),
+        Icon(Icons.folder_open_outlined, size: 72, color: kBorder),
         const SizedBox(height: 12),
-        Text('No records yet', style: TextStyle(fontSize: 16, color: Colors.grey.shade500)),
+        Text('No records yet', style: TextStyle(fontSize: 16, color: kTextMedium)),
         const SizedBox(height: 8),
         TextButton.icon(
           onPressed: onUpload,

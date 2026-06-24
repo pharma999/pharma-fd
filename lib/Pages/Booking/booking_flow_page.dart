@@ -87,7 +87,7 @@ class _BookingFlowPageState extends State<BookingFlowPage> {
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back, color: Colors.grey),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey, size: 20),
         ),
         title: const Text(
           'Book Service',

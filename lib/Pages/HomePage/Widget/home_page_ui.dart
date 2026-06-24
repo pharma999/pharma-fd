@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:home_care/Api/Core/api_client.dart';
+import 'package:home_care/Config/colors_coning.dart';
+import 'package:home_care/Controller/geo_controller.dart';
 import 'package:home_care/Controller/notification_controller.dart';
 import 'package:home_care/Controller/profile_controller.dart';
 import 'package:home_care/Controller/service_cart_controller.dart';
 import 'package:home_care/Controller/service_controller.dart';
 import 'package:home_care/Controller/service_professionals_controller.dart';
+import 'package:home_care/Pages/Bookings/booking_tracking_page.dart';
 import 'package:home_care/Pages/Cart/cart_screen.dart';
 import 'package:home_care/Pages/HomePage/Widget/emergency_floating.dart';
 import 'package:home_care/Pages/HomePage/Widget/emergency_widget.dart';
@@ -40,6 +46,38 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
   late AnimationController _headerAnim;
   late Animation<double> _headerFade;
 
+  // Changed on pull-to-refresh — forces NearbyProvidersSection to recreate its
+  // state and re-call _load(), so provider availability changes show immediately.
+  Key _providerSectionKey = UniqueKey();
+
+  // Active booking — shown as a live-tracking banner on the home screen
+  Map<String, dynamic>? _activeBooking;
+
+  Future<void> _onRefresh() async {
+    final geo = Get.find<GeoController>();
+    await Future.wait([geo.fetchAndSync(), _fetchActiveBooking()]);
+    if (mounted) setState(() => _providerSectionKey = UniqueKey());
+  }
+
+  Future<void> _fetchActiveBooking() async {
+    try {
+      final client = ApiClient();
+      final res = await client.get('bookings', requiresAuth: true);
+      final list = (res['data'] as List<dynamic>? ?? []).cast<Map>();
+      final active = list.firstWhereOrNull((b) {
+        final s = b['status'] as String? ?? '';
+        return s == 'PENDING' ||
+            s == 'ASSIGNED' ||
+            s == 'ACCEPTED' ||
+            s == 'IN_PROGRESS';
+      });
+      if (mounted) {
+        setState(() => _activeBooking =
+            active != null ? Map<String, dynamic>.from(active) : null);
+      }
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +97,12 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
     // Fetch services & professionals now that the user is logged in
     _serviceCtrl.loadAll();
     _proCtrl.fetchAll();
+
+    // Load approved providers + GPS location (runs after login so token exists)
+    Get.find<GeoController>().fetchAndSync();
+
+    // Check for any active booking to show the live-tracking banner
+    _fetchActiveBooking();
   }
 
   @override
@@ -91,11 +135,15 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
     ));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: kBackground,
       body: Stack(
         children: [
           // ── Scrollable content ──────────────────────────────────────────
-          CustomScrollView(
+          RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: kPrimary,
+            displacement: 80,
+            child: CustomScrollView(
             controller: _scrollCtrl,
             slivers: [
               // ── Sticky header ──────────────────────────────────────────
@@ -104,7 +152,7 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
                 floating: false,
                 pinned: true,
                 snap: false,
-                backgroundColor: const Color(0xFF1A56DB),
+                backgroundColor: kPrimary,
                 elevation: 0,
                 automaticallyImplyLeading: false,
                 flexibleSpace: FlexibleSpaceBar(
@@ -123,23 +171,31 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
+                    if (_activeBooking != null) ...[
+                      _buildActiveBookingBanner(_activeBooking!),
+                      const SizedBox(height: 16),
+                    ],
                     _buildQuickActions(),
                     const SizedBox(height: 24),
                     _buildActiveStatusBanner(),
+                    const SizedBox(height: 24),
+                    _PromoBanner(),
                     const SizedBox(height: 24),
                     HealthCareServicesUi(),
                     const SizedBox(height: 24),
                     const _FeaturedProvidersSection(),
                     const SizedBox(height: 24),
-                    _buildSectionHeader('Top Professionals', onSeeAll: () {}),
+                    _buildSectionHeader('Top Professionals',
+                        onSeeAll: () => Get.toNamed('/professionals')),
                     const SizedBox(height: 12),
-                    AvailableProfessionalsUi(),
+                    NearbyProvidersSection(key: _providerSectionKey),
                     const SizedBox(height: 100),
                   ],
                 ),
               ),
             ],
           ),
+          ),  // closes RefreshIndicator
 
           // ── Draggable chatbot FAB ───────────────────────────────────────
           Positioned(
@@ -169,7 +225,7 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1A56DB), Color(0xFF0E3FA8), Color(0xFF0A2D7A)],
+          colors: [kPrimary, kPrimaryMid, kPrimaryDark],
         ),
       ),
       child: SafeArea(
@@ -304,39 +360,67 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Location row
+                // Live location row — auto-fetches GPS, updates as user moves
                 Obx(() {
-                  final addr1 = _profileCtrl.user.value?.address1;
-                  final addr = addr1 != null
-                      ? [addr1.street, addr1.landmark, addr1.pinCode]
-                          .where((s) => s.isNotEmpty)
-                          .join(', ')
-                      : '';
+                  final geo = Get.find<GeoController>();
+                  final locating = geo.isLocating.value;
+                  final ready   = geo.locationReady.value;
+                  final address = geo.currentAddress.value;
+
                   return GestureDetector(
-                    onTap: () {},
+                    onTap: locating ? null : geo.refreshLocation,
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Icon(Icons.location_on,
-                              color: Color(0xFF6EE7F7), size: 14),
+                        // Location icon / spinner
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: locating
+                              ? Container(
+                                  key: const ValueKey('spin'),
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const SizedBox(
+                                    width: 14, height: 14,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 1.5, color: kAccent),
+                                  ),
+                                )
+                              : Container(
+                                  key: const ValueKey('pin'),
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: ready
+                                        ? kAccent.withValues(alpha: 0.2)
+                                        : Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    ready
+                                        ? Icons.my_location_rounded
+                                        : Icons.location_on,
+                                    color: kAccent, size: 14),
+                                ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            addr.isNotEmpty ? addr : 'Set your location',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 12),
+                            address,
+                            style: TextStyle(
+                              color: ready
+                                  ? Colors.white
+                                  : Colors.white60,
+                              fontSize: 12,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Icon(Icons.keyboard_arrow_down,
-                            color: Colors.white54, size: 16),
+                        if (!locating && ready)
+                          const Icon(Icons.refresh_rounded,
+                              color: Colors.white38, size: 13),
                       ],
                     ),
                   );
@@ -364,7 +448,7 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
       child: Row(
         children: [
           const Icon(Icons.health_and_safety_outlined,
-              color: Color(0xFF6EE7F7), size: 28),
+              color: kAccent, size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -385,12 +469,12 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF6EE7F7),
+              color: kAccent,
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Text('Book Now',
                 style: TextStyle(
-                    color: Color(0xFF0A2D7A),
+                    color: kPrimaryDark,
                     fontWeight: FontWeight.bold,
                     fontSize: 11)),
           ),
@@ -403,7 +487,7 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
 
   Widget _buildSearchBar() {
     return Container(
-      color: const Color(0xFF0A2D7A),
+      color: kPrimaryDark,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Container(
         height: 44,
@@ -419,23 +503,30 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
         ),
         child: TextField(
           controller: _searchCtrl,
-          onChanged: (v) => _proCtrl.search(v),
+          onChanged: (v) {
+            _proCtrl.search(v);
+            Get.find<GeoController>().search(v);
+          },
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
-            hintText: 'Search services, doctors...',
+            hintText: 'Search professionals, services...',
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
             prefixIcon:
-                const Icon(Icons.search, color: Color(0xFF1A56DB), size: 20),
-            suffixIcon: Obx(() => _proCtrl.searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: Icon(Icons.close,
-                        color: Colors.grey.shade400, size: 18),
-                    onPressed: () {
-                      _searchCtrl.clear();
-                      _proCtrl.search('');
-                    },
-                  )
-                : const SizedBox.shrink()),
+                const Icon(Icons.search, color: kPrimary, size: 20),
+            suffixIcon: Obx(() {
+              final geo = Get.find<GeoController>();
+              return geo.searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.close,
+                          color: Colors.grey.shade400, size: 18),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        _proCtrl.search('');
+                        geo.clearSearch();
+                      },
+                    )
+                  : const SizedBox.shrink();
+            }),
             border: InputBorder.none,
             contentPadding:
                 const EdgeInsets.symmetric(vertical: 12),
@@ -497,18 +588,20 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
   Widget _buildActiveStatusBanner() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
+      child: GestureDetector(
+        onTap: () => Get.toNamed('/bookingHistory'),
+        child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+            colors: [kSuccessLight, Color(0xFF38EF7D)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFF11998E).withValues(alpha: 0.35),
+                color: kSuccessLight.withValues(alpha: 0.35),
                 blurRadius: 12,
                 offset: const Offset(0, 4))
           ],
@@ -546,30 +639,146 @@ class _HomePageUiState extends State<HomePageUi> with TickerProviderStateMixin {
           ],
         ),
       ),
+      ),  // closes GestureDetector
     );
   }
 
   // ── SECTION HEADER ────────────────────────────────────────────────────────
 
+  // ── ACTIVE BOOKING BANNER ─────────────────────────────────────────────────
+
+  Widget _buildActiveBookingBanner(Map<String, dynamic> booking) {
+    final bookingId = booking['booking_id'] as String? ?? '';
+    final serviceName =
+        booking['service_name'] as String? ?? 'Healthcare Service';
+    final status = booking['status'] as String? ?? 'PENDING';
+
+    Color statusColor;
+    String statusLabel;
+    IconData statusIcon;
+    switch (status) {
+      case 'ASSIGNED':
+        statusColor = kWarning;
+        statusLabel = 'Provider Assigned';
+        statusIcon = Icons.person_pin_rounded;
+        break;
+      case 'ACCEPTED':
+        statusColor = kPrimary;
+        statusLabel = 'Provider En Route';
+        statusIcon = Icons.directions_run_rounded;
+        break;
+      case 'IN_PROGRESS':
+        statusColor = kPurple;
+        statusLabel = 'Service In Progress';
+        statusIcon = Icons.engineering_rounded;
+        break;
+      default:
+        statusColor = kWarning;
+        statusLabel = 'Booking Pending';
+        statusIcon = Icons.hourglass_top_rounded;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        onTap: () => Get.to(() => BookingTrackingPage(
+              bookingId: bookingId,
+              serviceName: serviceName,
+              status: status,
+            )),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+                color: statusColor.withValues(alpha: 0.35), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withValues(alpha: 0.18),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(statusIcon, color: statusColor, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(statusLabel,
+                        style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text(serviceName,
+                        style: const TextStyle(
+                            color: kTextDark,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14),
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    const Text('Tap to track live →',
+                        style:
+                            TextStyle(color: kTextMedium, fontSize: 11)),
+                  ],
+                ),
+              ),
+              // Animated live dot
+              _LiveDot(color: statusColor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title, {VoidCallback? onSeeAll}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1F36))),
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              gradient: kPrimaryGradientV,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(title,
+                style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: kTextDark)),
+          ),
           if (onSeeAll != null)
             GestureDetector(
               onTap: onSeeAll,
-              child: const Text('See all',
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF1A56DB),
-                      fontWeight: FontWeight.w600)),
+              child: Row(
+                children: const [
+                  Text('See all',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: kPrimary,
+                          fontWeight: FontWeight.w600)),
+                  SizedBox(width: 2),
+                  Icon(Icons.arrow_forward_ios, size: 11, color: kPrimary),
+                ],
+              ),
             ),
         ],
       ),
@@ -663,7 +872,7 @@ class _FeaturedProvidersSection extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1F36))),
+                        color: kTextDark)),
               ],
             ),
           ),
@@ -748,7 +957,7 @@ class _FeaturedCard extends StatelessWidget {
   }
 }
 
-class _QuickActionTile extends StatelessWidget {
+class _QuickActionTile extends StatefulWidget {
   final IconData icon;
   final String label;
   final List<Color> gradient;
@@ -763,44 +972,308 @@ class _QuickActionTile extends StatelessWidget {
   });
 
   @override
+  State<_QuickActionTile> createState() => _QuickActionTileState();
+}
+
+class _QuickActionTileState extends State<_QuickActionTile> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    if (isEmergency) {
+    if (widget.isEmergency) {
       return Expanded(
-          child: GestureDetector(onTap: onTap, child: const EmergencyUi()));
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          child: AnimatedScale(
+            scale: _pressed ? 0.92 : 1.0,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeInOut,
+            child: const EmergencyUi(),
+          ),
+        ),
+      );
     }
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                colors: gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                  color: gradient.first.withValues(alpha: 0.35),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3))
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 26),
-              const SizedBox(height: 6),
-              Text(label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11)),
-            ],
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.92 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeInOut,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: widget.gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                    color: widget.gradient.first.withValues(alpha: 0.45),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6))
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(widget.icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(height: 8),
+                Text(widget.label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 0.2)),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+// ── Live pulsing dot for active booking banner ────────────────────────────────
+
+class _LiveDot extends StatefulWidget {
+  final Color color;
+  const _LiveDot({required this.color});
+
+  @override
+  State<_LiveDot> createState() => _LiveDotState();
+}
+
+class _LiveDotState extends State<_LiveDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+  late Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
+    _scale = Tween<double>(begin: 1.0, end: 2.2)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _fade = Tween<double>(begin: 0.7, end: 0.0)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 16,
+      height: 16,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) => Transform.scale(
+              scale: _scale.value,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.color.withValues(alpha: _fade.value),
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: 8,
+            height: 8,
+            decoration:
+                BoxDecoration(shape: BoxShape.circle, color: widget.color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Auto-scroll promotional banner ────────────────────────────────────────────
+
+class _PromoBanner extends StatefulWidget {
+  const _PromoBanner();
+
+  @override
+  State<_PromoBanner> createState() => _PromoBannerState();
+}
+
+class _PromoBannerState extends State<_PromoBanner> {
+  final _controller = PageController(viewportFraction: 0.92);
+  int _page = 0;
+  Timer? _timer;
+
+  static const _banners = [
+    _BannerData(
+      title: '20% Off First Booking',
+      subtitle: 'Book your first home nursing visit\nand get 20% discount.',
+      icon: Icons.health_and_safety_rounded,
+      colors: [kPrimary, kPrimaryDark],
+    ),
+    _BannerData(
+      title: 'Certified Professionals',
+      subtitle: 'All our providers are verified\nand background-checked.',
+      icon: Icons.verified_rounded,
+      colors: [kSuccess, Color(0xFF059669)],
+    ),
+    _BannerData(
+      title: '24/7 Emergency Support',
+      subtitle: 'Round-the-clock healthcare\nat your doorstep.',
+      icon: Icons.local_hospital_rounded,
+      colors: [kError, Color(0xFFDC2626)],
+    ),
+    _BannerData(
+      title: 'Family Health Plans',
+      subtitle: 'Protect your entire family\nwith our care packages.',
+      icon: Icons.family_restroom_rounded,
+      colors: [kPurple, Color(0xFF6D28D9)],
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      final next = (_page + 1) % _banners.length;
+      _controller.animateToPage(next,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 110,
+          child: PageView.builder(
+            controller: _controller,
+            onPageChanged: (p) => setState(() => _page = p),
+            itemCount: _banners.length,
+            itemBuilder: (_, i) {
+              final b = _banners[i];
+              return AnimatedScale(
+                scale: _page == i ? 1.0 : 0.96,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: b.colors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: b.colors.first.withValues(alpha: 0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(b.title,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15)),
+                            const SizedBox(height: 6),
+                            Text(b.subtitle,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12,
+                                    height: 1.4)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(b.icon, color: Colors.white, size: 28),
+                      ),
+                    ]),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Dot indicators
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_banners.length, (i) => AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: _page == i ? 18 : 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: _page == i ? kPrimary : kBorder,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          )),
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerData {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<Color> colors;
+  const _BannerData({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.colors,
+  });
 }

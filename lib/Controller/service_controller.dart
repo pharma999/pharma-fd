@@ -10,11 +10,13 @@ class ServiceController extends GetxController {
 
   RxList<ServiceCategory> categories = <ServiceCategory>[].obs;
   RxList<ServiceModel> services = <ServiceModel>[].obs;
+  RxList<ServiceModel> quickServices = <ServiceModel>[].obs; // is_quick=true, managed by super admin
   RxList<ProfessionalModel> professionals = <ProfessionalModel>[].obs;
   Rx<ServiceModel?> selectedService = Rx<ServiceModel?>(null);
 
   RxBool isLoadingCategories = false.obs;
   RxBool isLoadingServices = false.obs;
+  RxBool isLoadingQuickServices = false.obs;
   RxBool isLoadingProfessionals = false.obs;
   RxString errorMessage = ''.obs;
 
@@ -37,6 +39,25 @@ class ServiceController extends GetxController {
   Future<void> loadAll() async {
     await fetchCategories();
     await fetchAllServices();
+    fetchQuickServices(); // fire-and-forget — populates Quick Book section
+  }
+
+  /// Fetches services flagged as "Quick" by the Super Admin.
+  /// Calls GET /services?is_quick=true
+  Future<void> fetchQuickServices() async {
+    try {
+      isLoadingQuickServices.value = true;
+      final result = await _repo.getAllServices(isQuick: true);
+      result.when(
+        onSuccess: (data) {
+          quickServices.value = data;
+          LoggerService.success('Loaded ${data.length} quick services');
+        },
+        onError: (err) => LoggerService.warning('Quick services load: $err'),
+      );
+    } finally {
+      isLoadingQuickServices.value = false;
+    }
   }
 
   Future<void> fetchCategories() async {

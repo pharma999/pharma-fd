@@ -136,7 +136,7 @@ class _ServicesPageState extends State<ServicesPage> {
         title: const Text('Healthcare Services',
             style: TextStyle(color: Color(0xFF312E81), fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.blue),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.blue, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [

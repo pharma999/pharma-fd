@@ -155,7 +155,23 @@ class PhoneNumberController extends GetxController
         onError: (error) {
           errorMessage.value = error;
           LoggerService.error('Failed to send OTP', error);
-          Get.snackbar('Error', error, snackPosition: SnackPosition.BOTTOM);
+          // Use addPostFrameCallback so the snackbar fires after any pending
+          // frame (avoids "No Overlay widget found" on 30s timeout callbacks).
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            try {
+              Get.snackbar(
+                'Failed to Send OTP',
+                error,
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: const Color(0xFFFFEBEE),
+                colorText: const Color(0xFFB71C1C),
+                duration: const Duration(seconds: 4),
+                icon: const Icon(Icons.error_outline, color: Color(0xFFB71C1C)),
+              );
+            } catch (_) {
+              // Swallow if overlay is still unavailable (e.g. app minimised)
+            }
+          });
         },
       );
     } finally {
